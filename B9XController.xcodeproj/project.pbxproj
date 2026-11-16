@@ -68,7 +68,7 @@
 		26F45F0CD4025C6CAEBAF039 /* BLE */ = {
 			isa = PBXGroup;
 			children = (
-				ADCD2AB63AA555F7BFEC1EE2 /* BLEManager.swift */,
+				ADCD2AB63AA555F7BFEC1EE2 /* BLEManager.swift */
 			);
 			path = BLE;
 			sourceTree = "<group>";
@@ -135,19 +135,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B57334BF761B5C07B8F70163 /* B9XControllerApp.swift in Sources */,,
-				BF7228312BD453698D49265C /* BLEManager.swift in Sources */,,
-				7EE7A55DFA425F82957C813A /* CoolerController.swift in Sources */,,
-				9B04E29DB6B258F48F813D6E /* B9XIntents.swift in Sources */,,
-				69EC10E7357A5486844F670F /* CoolerState.swift in Sources */,,
-				C0EBD532C0F155989F2167D7 /* B9XProtocol.swift in Sources */,,
-				14A61030C85C57A9818A9698 /* AutomationView.swift in Sources */,,
-				EEF3811084245339ADC7BC8D /* ConnectView.swift in Sources */,,
-				BE3D2127AF875E1F8C4FA884 /* ContentView.swift in Sources */,,
-				D20FF93CC5815B768FA0C0B3 /* DeviceView.swift in Sources */,,
-				A72399D75E6859ADA49F65ED /* GlassViews.swift in Sources */,,
-				88681F75EBE154848FE67BAD /* LEDView.swift in Sources */,,
-				FC417566198D5948BF052B1E /* MoreView.swift in Sources */,
+				B57334BF761B5C07B8F70163 /* B9XControllerApp.swift in Sources */,
+				BF7228312BD453698D49265C /* BLEManager.swift in Sources */,
+				7EE7A55DFA425F82957C813A /* CoolerController.swift in Sources */,
+				9B04E29DB6B258F48F813D6E /* B9XIntents.swift in Sources */,
+				69EC10E7357A5486844F670F /* CoolerState.swift in Sources */,
+				C0EBD532C0F155989F2167D7 /* B9XProtocol.swift in Sources */,
+				14A61030C85C57A9818A9698 /* AutomationView.swift in Sources */,
+				EEF3811084245339ADC7BC8D /* ConnectView.swift in Sources */,
+				BE3D2127AF875E1F8C4FA884 /* ContentView.swift in Sources */,
+				D20FF93CC5815B768FA0C0B3 /* DeviceView.swift in Sources */,
+				A72399D75E6859ADA49F65ED /* GlassViews.swift in Sources */,
+				88681F75EBE154848FE67BAD /* LEDView.swift in Sources */,
+				FC417566198D5948BF052B1E /* MoreView.swift in Sources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		}
@@ -172,8 +172,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8702C1D2CE1C504DA5843E6F /* CoreBluetooth.framework in Frameworks */,,
-				99C4D5369B9A5EBB9239E6F6 /* AppIntents.framework in Frameworks */,
+				8702C1D2CE1C504DA5843E6F /* CoreBluetooth.framework in Frameworks */,
+				99C4D5369B9A5EBB9239E6F6 /* AppIntents.framework in Frameworks */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		}
@@ -189,13 +189,13 @@
 		519B558A26F85D45AB2FAAC4 /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				0BD533CA99655E889E1EEB91 /* AutomationView.swift */,,
-				6875300C046E565AAF4A2067 /* ConnectView.swift */,,
-				3CB245F5B3195BEEB06D7343 /* ContentView.swift */,,
-				6EC57CAADA2C53D9B32D030F /* DeviceView.swift */,,
-				787B797A70885794A3311655 /* GlassViews.swift */,,
-				F1DD99D0035053B8B28CC53F /* LEDView.swift */,,
-				1416317DF3CC513697C03950 /* MoreView.swift */,
+				0BD533CA99655E889E1EEB91 /* AutomationView.swift */,
+				6875300C046E565AAF4A2067 /* ConnectView.swift */,
+				3CB245F5B3195BEEB06D7343 /* ContentView.swift */,
+				6EC57CAADA2C53D9B32D030F /* DeviceView.swift */,
+				787B797A70885794A3311655 /* GlassViews.swift */,
+				F1DD99D0035053B8B28CC53F /* LEDView.swift */,
+				1416317DF3CC513697C03950 /* MoreView.swift */
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -253,7 +253,7 @@
 				D1DFBA4DB5DC515999D527E1 /* Controller */,
 				519B558A26F85D45AB2FAAC4 /* UI */,
 				A52BB5A9F3B5501198C49937 /* Intents */,
-				BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */,
+				BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */
 				1AEE3D0AF3FA555998BA3839 /* Info.plist */,
 				BCE561B9FC085473B53BFAD4 /* Assets.xcassets */,
 			);
@@ -368,7 +368,7 @@
 		A52BB5A9F3B5501198C49937 /* Intents */ = {
 			isa = PBXGroup;
 			children = (
-				4510D5E12FCB5D419071BEE5 /* B9XIntents.swift */,
+				4510D5E12FCB5D419071BEE5 /* B9XIntents.swift */
 			);
 			path = Intents;
 			sourceTree = "<group>";
@@ -406,7 +406,7 @@
 		BF2C729EF44D590FBDC93C50 /* Protocol */ = {
 			isa = PBXGroup;
 			children = (
-				79D74332DB0C5DAA80DFDC67 /* B9XProtocol.swift */,
+				79D74332DB0C5DAA80DFDC67 /* B9XProtocol.swift */
 			);
 			path = Protocol;
 			sourceTree = "<group>";
@@ -499,7 +499,7 @@
 		CC73F77CE62358B5B1F4170F /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				2C689AD135515A2BAF443BC3 /* CoolerState.swift */,
+				2C689AD135515A2BAF443BC3 /* CoolerState.swift */
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -507,7 +507,7 @@
 		D1DFBA4DB5DC515999D527E1 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
-				35FD6919046454CC87E80DC6 /* CoolerController.swift */,
+				35FD6919046454CC87E80DC6 /* CoolerController.swift */
 			);
 			path = Controller;
 			sourceTree = "<group>";

@@ -113,7 +113,7 @@ def main():
 
     # ---- PBXFrameworksBuildPhase / PBXResourcesBuildPhase / PBXSourcesBuildPhase ----
     fw_files = ",\n".join(
-        "\t\t\t\t%s /* %s in Frameworks */," % (ids["buildfile:" + f], f)
+        "\t\t\t\t%s /* %s in Frameworks */" % (ids["buildfile:" + f], f)
         for f in ["CoreBluetooth.framework", "AppIntents.framework"]
     )
     add(ids["frameworks-phase"], "Frameworks",
@@ -121,7 +121,7 @@ def main():
     add(ids["resources-phase"], "Resources",
         "{\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t%s /* Assets.xcassets in Resources */,\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % ids["buildfile:Assets.xcassets"])
     src_files = ",\n".join(
-        "\t\t\t\t%s /* %s in Sources */," % (ids["buildfile:" + s], os.path.basename(s))
+        "\t\t\t\t%s /* %s in Sources */" % (ids["buildfile:" + s], os.path.basename(s))
         for s in sources
     )
     add(ids["sources-phase"], "Sources",
@@ -130,7 +130,7 @@ def main():
     # ---- PBXGroup ----
     for gname, gfiles in groups.items():
         children = ",\n".join(
-            "\t\t\t\t%s /* %s */," % (ids["fileref:" + s], os.path.basename(s))
+            "\t\t\t\t%s /* %s */" % (ids["fileref:" + s], os.path.basename(s))
             for s in gfiles
         )
         add(ids["group-" + gname], gname,
@@ -139,7 +139,7 @@ def main():
     for gname in ["Protocol", "Models", "BLE", "Controller", "UI", "Intents"]:
         app_children.append("\t\t\t\t%s /* %s */," % (ids["group-" + gname], gname))
     for s in top_level:
-        app_children.append("\t\t\t\t%s /* %s */," % (ids["fileref:" + s], os.path.basename(s)))
+        app_children.append("\t\t\t\t%s /* %s */" % (ids["fileref:" + s], os.path.basename(s)))
     app_children.append("\t\t\t\t%s /* Info.plist */," % ids["fileref:Info.plist"])
     app_children.append("\t\t\t\t%s /* Assets.xcassets */," % ids["fileref:Assets.xcassets"])
     add(ids["group-app"], "B9XController",
