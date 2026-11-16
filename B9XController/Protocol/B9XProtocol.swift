@@ -1,9 +1,9 @@
 import Foundation
 
-/// B9X 散热器 BLE 协议编解码。
+/// B9X 散热器 BLE 协议编解码（v2）。
 ///
-/// 逐行对照开源 Flutter 项目 `feizhi-b9x-cooler-client` 的
-/// `lib/core/protocol/b9x_protocol.dart`（协议逆向自官方飞智游戏厅 7.2.11）。
+/// 帧表以 `V2-SPEC.md §1` 为准：逐字节对照原版安卓 App（v0.8.143，
+/// jadx 反编译）与开源 Flutter 客户端 `feizhi-b9x-cooler-client` 核对。
 /// 只做纯字节运算，不依赖任何平台 API。
 
 enum B9XEvent {
@@ -34,14 +34,18 @@ struct StateEventData {
     var lightOn: Bool = false
     var ledType: Int = 0
     var quickSwitchRunMode: Int = 0
+    /// flags bit5：低温保护正在生效（动作中）。
     var coldProtection: Bool = false
     var runningInMaxLevel: Bool = false
     var timedShutdownMode: Int = 0
     var timedShutdownRunning: Bool = false
+    /// flags bit4：高温保护正在生效（只是状态位，无对应开关命令）。
     var hotProtectionEnabled: Bool = false
+    /// flags bit0：低温保护开关已开启。
     var coldProtectionEnabled: Bool = false
     var timedCountdownInMinute: Bool = false
-    var freezeModeEnabled: Bool = false
+    /// flags bit7：Freeze（超频体验）进行中。
+    var freezeMode: Bool = false
     var timeCountdown: Int = 0
 }
 
@@ -80,41 +84,39 @@ enum B9XProtocol {
 
     static let modeSmart = 0
     static let modeManual = 1
-    static let modeOverclock = 2
+    static let modeOverclock = 2 // 仅用于回显识别（state.runMode == 2 时按超频显示）；v2 不再发 mode 2 的 0x20 帧
     static let modeExperimentalSmart = 3
     static let modeCustom = 4
 
-    // ------------------------------------------------------------ 档位（电压）
+    /// 软件温控环路模式 id（存 CoolerState.softwareThermalMode）。
+    static let thermalModeNone = 0
+    static let thermalModeBattery = 100
+    static let thermalModeCoolerTarget = 101
 
-    /// 可选档位值（0 表示关闭）。
-    static let levels: [Int] = [0, 19, 38, 57, 77, 95, 115, 134]
+    // ------------------------------------------------------------ 上限与预设（§2，原版档案）
 
-    /// 档位值对应电压：`((level - 19) * 0.5 / 19) + 1.5`。
-    static func voltsOf(_ level: Int) -> Double {
-        if level <= 0 { return 0 }
-        return (Double(level - 19) * 0.5 / 19.0) + 1.5
-    }
+    static let maxColdLevel = 175
+    static let maxWindLevel = 5700
+    static let minWindLevel = 4000
 
-    static func voltsLabel(_ level: Int) -> String {
-        if level <= 0 { return "--" }
-        return String(format: "%.1fV", voltsOf(level))
-    }
+    /// 智能二档：静音 id 0（target 6，wind 4000，cold 145，OC 0/0）。
+    static let smartPresetSilent = (target: 6, wind: 4000, cold: 145, windOC: 0, coldOC: 0)
+    /// 智能二档：极寒 id 2（target 0，wind 5500，cold 175，OC 0/0）。
+    static let smartPresetExtreme = (target: 0, wind: 5500, cold: 175, windOC: 0, coldOC: 0)
 
-    /// 最接近给定电压的档位值。
-    static func nearestLevel(_ volts: Double) -> Int {
-        var best = levels.first ?? 0
-        var bestDiff = Double.infinity
-        for level in levels {
-            let diff = abs(voltsOf(level) - volts)
-            if diff < bestDiff {
-                bestDiff = diff
-                best = level
-            }
-        }
-        return best
-    }
+    /// 手动三档：节能（cold 92，wind 4000，windOC 4000，coldOC 92）。
+    static let manualPresetEco = (cold: 92, wind: 4000, windOC: 4000, coldOC: 92)
+    /// 手动三档：强劲（cold 155，wind 4500，windOC 4500，coldOC 155）。
+    static let manualPresetStrong = (cold: 155, wind: 4500, windOC: 4500, coldOC: 155)
+    /// 手动三档：极强（cold 175，wind 4500，windOC 5700，coldOC 175）。
+    static let manualPresetMax = (cold: 175, wind: 4500, windOC: 5700, coldOC: 175)
 
-    // ------------------------------------------------------------ 灯效枚举
+    /// 九点曲线温度点（固定）。
+    static let curveTemperatures: [Int] = [-12, -9, -6, -3, 0, 3, 6, 9, 12]
+    /// 九点曲线默认档位。
+    static let defaultCurveLevels: [Int] = [5, 5, 5, 6, 7, 8, 8, 8, 8]
+
+    // ------------------------------------------------------------ LED（§2）
 
     static let ledTypes: [Int: String] = [
         0: "关闭",
@@ -138,10 +140,38 @@ enum B9XProtocol {
         22: "主题",
     ]
 
+    /// 各灯效模式的颜色数量（min/max）。THROB/RHYTHM 固定 8 色。
+    static func ledColorCountRange(type: Int) -> (min: Int, max: Int) {
+        switch type {
+        case 11: return (1, 1) // ALWAYS_ON 常亮
+        case 16: return (2, 3) // MULTI_ROTATION 多色旋转
+        case 17, 19: return (8, 8) // THROB 跳动 / RHYTHM 律动
+        case 20: return (1, 8) // CYBERPUNK 赛博朋克
+        default: return (2, 8) // FLOW/BREATH/GRADIENT/CUTOVER/COLLISION 等
+        }
+    }
+
+    /// UI 速度档（0 慢 / 1 中 / 2 快）→ 设备 speedRaw。
+    /// CUTOVER/BREATH/MULTI_ROTATION 表 [3,5,8]（快→慢），GRADIENT [6,8,10]，
+    /// COLLISION [8,5,3]，取表[2-uiSpeed]；无表模式取 [115,58,1][uiSpeed]。
+    static func ledSpeedRaw(type: Int, uiSpeed: Int) -> Int {
+        let speed = max(0, min(uiSpeed, 2))
+        switch type {
+        case 4, 5, 16: // CUTOVER / BREATH / MULTI_ROTATION
+            return [3, 5, 8][2 - speed]
+        case 6: // GRADIENT
+            return [6, 8, 10][2 - speed]
+        case 21: // COLLISION
+            return [8, 5, 3][2 - speed]
+        default:
+            return [115, 58, 1][speed]
+        }
+    }
+
     // ------------------------------------------------------------ 命令帧
 
     static func setColdLevel(_ level: Int) -> Data {
-        Data([0x12, UInt8(level & 0xFF)])
+        Data([0x12, UInt8(max(0, min(level, maxColdLevel)) & 0xFF)])
     }
 
     static func setSpeedLevel(_ level: Int) -> Data {
@@ -151,7 +181,15 @@ enum B9XProtocol {
     static func lightOn() -> Data { Data([0x10, 0xFF]) }
     static func lightOff() -> Data { Data([0x10, 0x00]) }
 
-    /// 设置运行模式。
+    /// 0x13 轮询：单字节（v1 错发 [0x52,0x00]，那是读实验模式）。
+    static func requestRealtimeState() -> Data { Data([0x13]) }
+
+    /// 设置运行模式（0x20）。
+    ///
+    /// - 普通帧：`[0x20, mode, coldOC, windOC/100, windOC%100, target, cold, wind/100, 0]`，
+    ///   第 9 字节固定发 0（原版 modeCustom；v1 错发 wind%100）。wind 只发百位。
+    ///   mode 只取 0..3；mode 4 走曲线分支。target 钳到 0..255。
+    /// - 曲线帧：`[0x20, 0x04, 9 个档位各 clamp 1..8]`（0x34 路径已删）。
     static func setRunMode(
         mode: Int,
         targetTemperature: Int = 0,
@@ -164,23 +202,26 @@ enum B9XProtocol {
         if mode == modeCustom {
             var frame = Data(count: 11)
             frame[0] = 0x20
-            frame[1] = UInt8(mode & 0xFF)
-            let levels = customLevels ?? []
-            for i in 0..<min(9, levels.count) {
-                frame[2 + i] = UInt8(levels[i] & 0xFF)
+            frame[1] = UInt8(modeCustom & 0xFF)
+            let levels = customLevels ?? defaultCurveLevels
+            for i in 0..<9 {
+                let v = i < levels.count ? levels[i] : defaultCurveLevels[i]
+                frame[2 + i] = UInt8(max(1, min(v, 8)) & 0xFF)
             }
             return frame
         }
+        let m = max(0, min(mode, 3))
+        let target = max(0, min(targetTemperature, 255))
         return Data([
             0x20,
-            UInt8(mode & 0xFF),
+            UInt8(m & 0xFF),
             UInt8(coldLevelOverclock & 0xFF),
             UInt8((windLevelOverclock / 100) & 0xFF),
             UInt8((windLevelOverclock % 100) & 0xFF),
-            UInt8(targetTemperature & 0xFF),
+            UInt8(target & 0xFF),
             UInt8(coldLevel & 0xFF),
             UInt8((windLevel / 100) & 0xFF),
-            UInt8((windLevel % 100) & 0xFF),
+            0,
         ])
     }
 
@@ -196,8 +237,10 @@ enum B9XProtocol {
 
     static func handshake() -> Data { Data([0xA5, 0xA0, 0x00, 0x00]) }
 
+    /// 0x21 快捷模式（v1 错用 0x57）。mode 只取 0/1/4。
     static func setQuickSwitchRunMode(_ mode: Int) -> Data {
-        Data([0x57, UInt8(mode & 0xFF)])
+        let m = (mode == 1 || mode == 4) ? mode : 0
+        return Data([0x21, UInt8(m & 0xFF)])
     }
 
     static func setExperimentalRunMode(enabled: Bool, level: Int = 0, targetTemperature: Int = 0) -> Data {
@@ -215,45 +258,47 @@ enum B9XProtocol {
         Data([0x33, UInt8(a), UInt8(b), UInt8(c), UInt8(d), UInt8(e), UInt8(f)])
     }
 
-    static func setCustomCurve(_ values: [Int]) -> Data {
-        var frame = Data(count: values.count + 2)
-        frame[0] = 0x34
-        frame[1] = 0
-        for (i, v) in values.enumerated() {
-            frame[i + 2] = UInt8(v & 0xFF)
-        }
-        return frame
-    }
-
-    /// 定时关机。seconds 为总秒数。
-    static func setTimedShutdown(once: Bool, mode: Int, seconds: Int) -> Data {
-        let total = max(0, min(seconds, 0xFFFF))
+    /// 定时关机（分钟制）：`[0x60, repeat, enabled, 分钟>>8, 分钟&0xFF]`。
+    /// 关闭发 `[0x60, repeat, 0, 0, 0]`。
+    static func setTimedShutdown(`repeat` repeatEnabled: Bool, enabled: Bool, minutes: Int) -> Data {
+        let total = max(0, min(minutes, 0xFFFF))
         return Data([
             0x60,
-            UInt8(mode & 0xFF),
-            once ? 1 : 0,
+            repeatEnabled ? 1 : 0,
+            enabled ? 1 : 0,
             UInt8((total >> 8) & 0xFF),
             UInt8(total & 0xFF),
         ])
     }
 
-    static func readTimedShutdown() -> Data { Data([0x61, 0x00]) }
+    /// 读定时：`[0x61]` 单字节（v1 错发 `[0x61,0x00]`）。
+    static func readTimedShutdown() -> Data { Data([0x61]) }
 
     /// 冻结模式：官方 `ctrlFreezeMode` → `26 01/00 00 00`。
     static func setFreezeMode(_ enabled: Bool) -> Data {
         Data([0x26, enabled ? 1 : 0, 0, 0])
     }
 
-    /// 温度保护：官方 `offTempProtect` → `32 idx value`，idx 0=低温 1=高温。
-    static func setTempProtect(low: Bool, enabled: Bool) -> Data {
-        Data([0x32, low ? 0 : 1, enabled ? 1 : 0])
+    /// 风开关（取反）：`[0x25, enabled ? 0 : 1]`。原版有；UI 暂不接线，备用。
+    static func setWindEnabled(_ enabled: Bool) -> Data {
+        Data([0x25, enabled ? 0 : 1])
+    }
+
+    /// 低温保护：只有低温保护，`[0x32, 0x00, enabled]`。
+    /// 高温保护命令已删（原版无此命令；高温只是状态位）。
+    static func setTempProtect(enabled: Bool) -> Data {
+        Data([0x32, 0x00, enabled ? 1 : 0])
     }
 
     /// 设置灯效（20 字节分包 + 触发帧）。
+    /// 颜色最多 8 个（超 4 色分 2 包）；亮度 clamp 0..100；
+    /// byte[18] = mode==19 ? (colorful ? 2 : 1) : 0；
+    /// byte[19] = checksum8 = 前 19 字节之和 mod 256。
     static func setLedColor(type: Int, period: Int = 0, colors: [Int] = [], light: Int = 0, colorful: Bool = false) -> [Data] {
         var packets: [Data] = []
-        let total = colors.count
+        let total = min(colors.count, 8)
         let chunkCount = total > 4 ? 2 : 1
+        let brightness = max(0, min(light, 100))
         for chunk in 0..<chunkCount {
             var frame = Data(count: 20)
             frame[0] = 0x50
@@ -270,8 +315,11 @@ enum B9XProtocol {
                 frame[offset + 1] = UInt8((rgb >> 8) & 0xFF)
                 frame[offset + 2] = UInt8(rgb & 0xFF)
             }
-            frame[17] = UInt8(light & 0xFF)
-            frame[18] = (type == 19 && colorful) ? 2 : 0
+            frame[17] = UInt8(brightness & 0xFF)
+            frame[18] = (type == 19) ? (colorful ? 2 : 1) : 0
+            var sum = 0
+            for i in 0..<19 { sum += Int(frame[i]) }
+            frame[19] = UInt8(sum & 0xFF)
             packets.append(frame)
         }
         packets.append(Data([0x51, UInt8(type & 0xFF)]))
@@ -363,6 +411,8 @@ enum B9XProtocol {
     }
 
     /// 0x13 状态帧。B9X/B8X 为 20 字节布局，老型号为紧凑布局。
+    /// flags：bit0 冷保护开关，bit1 满档运行，bit2 定时模式，bit3 定时运行中，
+    /// bit4 高温保护生效，bit5 低温保护生效，bit6 倒计时按分钟，bit7 Freeze。
     private static func parseState(_ v: Data) -> StateEventData? {
         guard v.count >= 10 else { return nil }
 
@@ -384,14 +434,14 @@ enum B9XProtocol {
                 lightOn: v[14] == 0xFF,
                 ledType: Int(v[15]),
                 quickSwitchRunMode: Int(v[16]),
-                coldProtection: (flags & 0x01) != 0,
+                coldProtection: (flags & 0x20) != 0,
                 runningInMaxLevel: (flags & 0x02) != 0,
                 timedShutdownMode: (flags >> 2) & 0x01,
                 timedShutdownRunning: (flags & 0x08) != 0,
-                hotProtectionEnabled: ((flags >> 4) & 0x01) != 0 || (flags >> 4) == 2,
-                coldProtectionEnabled: ((flags >> 5) & 0x01) != 0,
+                hotProtectionEnabled: (flags & 0x10) != 0,
+                coldProtectionEnabled: (flags & 0x01) != 0,
                 timedCountdownInMinute: ((flags >> 6) & 0x01) != 0,
-                freezeModeEnabled: ((flags >> 7) & 0x01) != 0,
+                freezeMode: ((flags >> 7) & 0x01) != 0,
                 timeCountdown: (Int(v[18]) << 8) + Int(v[19])
             )
         }
@@ -421,7 +471,7 @@ enum B9XProtocol {
             hotProtectionEnabled: ((v[17] >> 4) & 0x01) != 0,
             coldProtectionEnabled: false,
             timedCountdownInMinute: false,
-            freezeModeEnabled: false,
+            freezeMode: false,
             timeCountdown: 0
         )
     }

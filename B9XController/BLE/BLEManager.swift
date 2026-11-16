@@ -24,6 +24,10 @@ enum BLEConnectionState: String {
 ///
 /// 对应 Flutter 项目的 Kotlin/WinRT 两端实现 + `ble_bridge.dart` 的通道语义，
 /// 用 CoreBluetooth 重写。所有回调都在主队列。
+///
+/// 下行队列（§5，照搬原版 BleWriteQueue）：回调驱动，一次只一个在途；
+/// 前一条写完（`didWriteValueFor` 回调）才发下一条；写失败或 2.5 秒超时
+/// → 重试 1 次，仍失败则丢弃并走 `onWriteError`。
 final class BLEManager: NSObject, ObservableObject {
     @Published private(set) var connection: BLEConnectionState = .idle
     @Published private(set) var devices: [DiscoveredDevice] = []
@@ -36,6 +40,30 @@ final class BLEManager: NSObject, ObservableObject {
 
     /// 中央管理器就绪（蓝牙已开启）时回调。
     var onReady: (() -> Void)?
+
+    /// 写失败 / 丢弃命令时回调（上层记日志）。主队列调用。
+    var onWriteError: ((String) -> Void)?
+    /// 写成功确认时回调（供 Freeze/模式事务参考）。主队列调用。
+    var onWriteAck: (() -> Void)?
+    /// 一般性日志（丢弃、重订阅等）。主队列调用。
+    var onLog: ((String) -> Void)?
+
+    /// 最近一次写成功确认的时间。
+    private(set) var lastWriteAckAt: Date?
+    /// 最近一次收到 FFE4 通知的时间。
+    private(set) var lastNotifyAt: Date?
+
+    /// 当前写特征的实际写类型（诊断页显示）。
+    var writeModeDescription: String {
+        guard let writeChar = writeChar else { return "未发现写特征" }
+        if writeChar.properties.contains(.write) {
+            return "withResponse (.write)"
+        }
+        if writeChar.properties.contains(.writeWithoutResponse) {
+            return "withoutResponse (.writeWithoutResponse)"
+        }
+        return "未知（特征无写属性）"
+    }
 
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
@@ -55,12 +83,25 @@ final class BLEManager: NSObject, ObservableObject {
     private static let lastDeviceKey = "b9x.lastDeviceIdentifier"
 
     // ------------------------------------------------------------ 下行队列
-    // 同类命令（同一 key）合并，只发最新值；每条之间留 45ms 给固件处理。
+
+    private struct QueuedWrite {
+        let data: Data
+        let key: String?
+        let completion: ((Bool) -> Void)?
+        var retries: Int = 0
+    }
 
     private let writeQueue = DispatchQueue(label: "com.b9x.controller.bleWrite")
-    private var pending: [(data: Data, key: String?)] = []
-    private var pumping = false
+    private var pending: [QueuedWrite] = []
+    private var inFlight: QueuedWrite?
+    private var writeTimeoutWorkItem: DispatchWorkItem?
+    private var withoutResponseWorkItem: DispatchWorkItem?
+    /// 写暂停（固件读取期间暂停——本工程暂不触发，结构保留）。
+    private var writesSuspended = false
+
     private static let commandGap: TimeInterval = 0.045
+    private static let writeTimeout: TimeInterval = 2.5
+    private static let maxRetries = 1
 
     override init() {
         super.init()
@@ -119,7 +160,7 @@ final class BLEManager: NSObject, ObservableObject {
     func disconnect() {
         userDisconnected = true
         reconnectWorkItem?.cancel()
-        writeQueue.sync { pending.removeAll() }
+        clearWriteQueue()
         connection = .disconnecting
         if let peripheral = peripheral {
             central.cancelPeripheralConnection(peripheral)
@@ -146,16 +187,37 @@ final class BLEManager: NSObject, ObservableObject {
         UserDefaults.standard.string(forKey: Self.lastDeviceKey) != nil
     }
 
+    /// 重新订阅 FFE4 通知（READY 超时 4 秒未收到状态时由上层调用）。
+    func reenableNotifications() {
+        guard let peripheral = peripheral, let notifyChar = notifyChar else { return }
+        peripheral.setNotifyValue(true, for: notifyChar)
+        DispatchQueue.main.async { [weak self] in
+            self?.onLog?("已重新订阅 FFE4 通知")
+        }
+    }
+
     // ------------------------------------------------------------ 下行
 
-    func enqueue(_ data: Data, key: String? = nil) {
+    /// 未连接时入队的命令直接丢弃并记日志（与 Flutter 一致）。
+    func enqueue(_ data: Data, key: String? = nil, completion: ((Bool) -> Void)? = nil) {
         writeQueue.async { [weak self] in
             guard let self = self else { return }
-            if let key = key, let index = self.pending.firstIndex(where: { $0.key == key }) {
-                self.pending[index] = (data, key)
+            if self.connection != .connected || self.writeChar == nil {
+                DispatchQueue.main.async {
+                    self.onLog?("未连接，丢弃命令 \(data.map { String(format: "%02X", $0) }.joined(separator: " "))")
+                    completion?(false)
+                }
                 return
             }
-            self.pending.append((data, key))
+            if let key = key,
+               let index = self.pending.firstIndex(where: { $0.key == key }) {
+                // 同 key 合并：移除旧待发项并调其回调 false。
+                let old = self.pending[index]
+                self.pending[index] = QueuedWrite(data: data, key: key, completion: completion)
+                DispatchQueue.main.async { old.completion?(false) }
+                return
+            }
+            self.pending.append(QueuedWrite(data: data, key: key, completion: completion))
             self.pumpLocked()
         }
     }
@@ -166,22 +228,135 @@ final class BLEManager: NSObject, ObservableObject {
         }
     }
 
-    private func pumpLocked() {
-        // 只在 writeQueue 上调用。
-        guard !pumping, let item = pending.first else { return }
-        pumping = true
-        pending.removeFirst()
-        DispatchQueue.main.async { [weak self] in
+    /// 暂停写队列（固件读取期间用；本工程暂不触发）。
+    func suspendWrites() {
+        writeQueue.async { [weak self] in
+            self?.writesSuspended = true
+        }
+    }
+
+    func resumeWrites() {
+        writeQueue.async { [weak self] in
             guard let self = self else { return }
-            if let peripheral = self.peripheral,
-               let writeChar = self.writeChar,
-               self.connection == .connected {
-                peripheral.writeValue(item.data, for: writeChar, type: .withoutResponse)
+            self.writesSuspended = false
+            self.pumpLocked()
+        }
+    }
+
+    /// 断开时调用：清队列、取消超时计时、在途项回调 false。
+    private func clearWriteQueue() {
+        writeQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.writeTimeoutWorkItem?.cancel()
+            self.writeTimeoutWorkItem = nil
+            self.withoutResponseWorkItem?.cancel()
+            self.withoutResponseWorkItem = nil
+            let dropped = self.pending
+            self.pending.removeAll()
+            if let item = self.inFlight {
+                self.inFlight = nil
+                DispatchQueue.main.async { item.completion?(false) }
             }
-            self.writeQueue.asyncAfter(deadline: .now() + Self.commandGap) {
-                self.pumping = false
-                self.pumpLocked()
+            for item in dropped {
+                DispatchQueue.main.async { item.completion?(false) }
             }
+        }
+    }
+
+    /// 只在 writeQueue 上调用。
+    private func pumpLocked() {
+        guard !writesSuspended, inFlight == nil, let item = pending.first else { return }
+        pending.removeFirst()
+        guard let peripheral = peripheral,
+              let writeChar = writeChar,
+              connection == .connected else {
+            // 队列里残留的命令在断开瞬间可能走到这里：丢弃并继续。
+            DispatchQueue.main.async { item.completion?(false) }
+            pumpLocked()
+            return
+        }
+        inFlight = item
+        // 写类型自适应：特征含 .write 用 .withResponse，否则用 .withoutResponse
+        //（v1 无条件 withoutResponse——若特征不支持会被 iOS 静默丢弃）。
+        let type: CBCharacteristicWriteType =
+            writeChar.properties.contains(.write) ? .withResponse : .withoutResponse
+        peripheral.writeValue(item.data, for: writeChar, type: type)
+        if type == .withResponse {
+            let workItem = DispatchWorkItem { [weak self] in
+                self?.handleWriteTimeout()
+            }
+            writeTimeoutWorkItem = workItem
+            writeQueue.asyncAfter(deadline: .now() + Self.writeTimeout, execute: workItem)
+        } else {
+            // withoutResponse 没有 didWriteValueFor 回调：按固定间隔推进。
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                self.writeQueue.async {
+                    guard self.inFlight?.data == item.data else { return }
+                    self.inFlight = nil
+                    DispatchQueue.main.async { item.completion?(true) }
+                    self.pumpLocked()
+                }
+            }
+            withoutResponseWorkItem = workItem
+            writeQueue.asyncAfter(deadline: .now() + Self.commandGap, execute: workItem)
+        }
+    }
+
+    /// 只在 writeQueue 上调用（超时 / 写失败回调的公共处理）。
+    private func failInFlightLocked(errorMessage: String) {
+        guard var item = inFlight else { return }
+        writeTimeoutWorkItem?.cancel()
+        writeTimeoutWorkItem = nil
+        withoutResponseWorkItem?.cancel()
+        withoutResponseWorkItem = nil
+        if item.retries < Self.maxRetries {
+            item.retries += 1
+            inFlight = item
+            // 队首重入队：重试 1 次。
+            if let peripheral = peripheral,
+               let writeChar = writeChar,
+               connection == .connected {
+                let type: CBCharacteristicWriteType =
+                    writeChar.properties.contains(.write) ? .withResponse : .withoutResponse
+                peripheral.writeValue(item.data, for: writeChar, type: type)
+                if type == .withResponse {
+                    let workItem = DispatchWorkItem { [weak self] in
+                        self?.handleWriteTimeout()
+                    }
+                    writeTimeoutWorkItem = workItem
+                    writeQueue.asyncAfter(deadline: .now() + Self.writeTimeout, execute: workItem)
+                } else {
+                    let workItem = DispatchWorkItem { [weak self] in
+                        self?.writeQueue.async {
+                            guard self.inFlight?.data == item.data else { return }
+                            self.inFlight = nil
+                            DispatchQueue.main.async { item.completion?(true) }
+                            self.pumpLocked()
+                        }
+                    }
+                    withoutResponseWorkItem = workItem
+                    writeQueue.asyncAfter(deadline: .now() + Self.commandGap, execute: workItem)
+                }
+            } else {
+                inFlight = nil
+                DispatchQueue.main.async { item.completion?(false) }
+                pumpLocked()
+            }
+            return
+        }
+        inFlight = nil
+        DispatchQueue.main.async { [weak self] in
+            self?.onWriteError?(errorMessage)
+            item.completion?(false)
+        }
+        pumpLocked()
+    }
+
+    private func handleWriteTimeout() {
+        writeQueue.async { [weak self] in
+            guard let self = self, self.inFlight != nil else { return }
+            self.failInFlightLocked(errorMessage: "写超时（2.5 秒无确认），已丢弃")
         }
     }
 
@@ -272,6 +447,7 @@ extension BLEManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        clearWriteQueue()
         writeChar = nil
         notifyChar = nil
         connection = .idle
@@ -327,6 +503,28 @@ extension BLEManager: CBPeripheralDelegate {
         guard error == nil,
               characteristic.uuid == notifyUUID,
               let data = characteristic.value else { return }
+        lastNotifyAt = Date()
         onData?(data)
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        guard characteristic.uuid == writeUUID else { return }
+        writeQueue.async { [weak self] in
+            guard let self = self, self.inFlight != nil else { return }
+            if let error = error {
+                self.failInFlightLocked(errorMessage: "写失败：\(error.localizedDescription)")
+                return
+            }
+            self.writeTimeoutWorkItem?.cancel()
+            self.writeTimeoutWorkItem = nil
+            let item = self.inFlight
+            self.inFlight = nil
+            self.lastWriteAckAt = Date()
+            DispatchQueue.main.async { [weak self] in
+                self?.onWriteAck?()
+                item?.completion?(true)
+            }
+            self.pumpLocked()
+        }
     }
 }
