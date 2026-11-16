@@ -166,6 +166,9 @@ final class CoolerController: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.phoneThermal = PhoneThermalState.from(ProcessInfo.processInfo.thermalState)
+                // 电量 5 秒轮询刷新：只靠 batteryLevelDidChangeNotification 时
+                // 系统通知可能合并/延迟，轮询兜底保证数值不 stale。
+                self.updateBatteryStatus()
             }
         }
         phoneThermal = PhoneThermalState.from(ProcessInfo.processInfo.thermalState)

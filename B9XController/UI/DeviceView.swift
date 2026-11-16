@@ -30,7 +30,7 @@ struct DeviceView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 14) {
                     topRow
                     noticeBanners
                     mainCard
@@ -57,7 +57,9 @@ struct DeviceView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
+                .padding(.bottom, 20)
             }
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showConnectSheet) {
                 NavigationStack {
@@ -193,13 +195,13 @@ struct DeviceView: View {
                     }
                     Spacer()
                     CoolerImageView()
-                        .frame(width: 140, height: 140)
+                        .frame(width: 120, height: 120)
                 }
                 Divider()
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 10)
                 LazyVGrid(
                     columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
-                    spacing: 16
+                    spacing: 12
                 ) {
                     // CPU：iOS 读不到 CPU 温度，显示系统热状态文字。
                     dataCell("CPU", connected ? controller.phoneThermal.rawValue : "--")

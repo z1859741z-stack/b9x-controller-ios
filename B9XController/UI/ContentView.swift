@@ -44,7 +44,7 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, 92)
+            .padding(.bottom, 104)
 
             // 液态玻璃底栏：选中项套一层更亮的胶囊（对照原版截图）。
             HStack(spacing: 4) {
