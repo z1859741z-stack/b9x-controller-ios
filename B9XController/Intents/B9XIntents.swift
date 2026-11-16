@@ -42,7 +42,7 @@ struct SetCoolerModeIntent: AppIntent {
             case .manual:
                 controller.setManual()
             case .overclock:
-                controller.setOverclock()
+                controller.setFreezeEnabled(true)
             case .custom:
                 controller.setCustomCurve(controller.state.customLevels)
             }

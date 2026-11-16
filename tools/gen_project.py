@@ -14,7 +14,7 @@ PROJ_DIR = os.path.join(ROOT, "B9XController.xcodeproj")
 SCHEME_DIR = os.path.join(PROJ_DIR, "xcshareddata", "xcschemes")
 
 TARGET_NAME = "B9XController"
-BUNDLE_ID = "com.b9x.controller.ios"
+BUNDLE_ID = "com.enginecore.plus"
 DEPLOYMENT_TARGET = "26.0"
 MARKETING_VERSION = "0.8.143"
 CURRENT_PROJECT_VERSION = "227"
