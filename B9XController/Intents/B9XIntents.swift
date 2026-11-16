@@ -55,7 +55,7 @@ struct B9XShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: SetCoolerModeIntent(),
-            phrases: ["散热器超频", "把散热器调到超频", "打开散热器"]
+            phrases: ["用${applicationName}给散热器超频", "用${applicationName}把散热器调到超频", "用${applicationName}打开散热器"]
         )
     }
 }
