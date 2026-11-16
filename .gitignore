@@ -3,3 +3,5 @@ build/
 *.xcuserdata/
 *.xcuserstate
 DerivedData/
+ipa-download/
+media-generation-*
