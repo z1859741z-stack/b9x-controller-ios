@@ -139,7 +139,7 @@ def main():
     for gname in ["Protocol", "Models", "BLE", "Controller", "UI", "Intents"]:
         app_children.append("\t\t\t\t%s /* %s */," % (ids["group-" + gname], gname))
     for s in top_level:
-        app_children.append("\t\t\t\t%s /* %s */" % (ids["fileref:" + s], os.path.basename(s)))
+        app_children.append("\t\t\t\t%s /* %s */," % (ids["fileref:" + s], os.path.basename(s)))
     app_children.append("\t\t\t\t%s /* Info.plist */," % ids["fileref:Info.plist"])
     app_children.append("\t\t\t\t%s /* Assets.xcassets */," % ids["fileref:Assets.xcassets"])
     add(ids["group-app"], "B9XController",
@@ -288,6 +288,8 @@ def main():
         lines.append("\t\t%s /* %s */ = %s" % (uuid_, comment, first))
         if rest:
             lines.append(rest)
+        # each object entry must end with "};" in pbxproj
+        lines[-1] = lines[-1] + ";"
     lines += ["\t};", "\trootObject = %s /* Project object */;" % ids["project"], "}"]
     with open(os.path.join(PROJ_DIR, "project.pbxproj"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")

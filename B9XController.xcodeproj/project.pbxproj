@@ -11,13 +11,13 @@
 			name = AppIntents.framework;
 			path = System/Library/Frameworks/AppIntents.framework;
 			sourceTree = SDKROOT;
-		}
+		};
 		0BD533CA99655E889E1EEB91 /* AutomationView.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = AutomationView.swift;
 			sourceTree = "<group>";
-		}
+		};
 		0DEC4BA73BAD562CA77CA4B7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -40,23 +40,23 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
-		}
+		};
 		1416317DF3CC513697C03950 /* MoreView.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = MoreView.swift;
 			sourceTree = "<group>";
-		}
+		};
 		14A61030C85C57A9818A9698 /* AutomationView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 0BD533CA99655E889E1EEB91 /* AutomationView.swift */;
-		}
+		};
 		1AEE3D0AF3FA555998BA3839 /* Info.plist */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = text.plist.xml;
 			path = Info.plist;
 			sourceTree = "<group>";
-		}
+		};
 		1F3731B001FA5662B4CF0A41 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -64,7 +64,7 @@
 			);
 			name = Products;
 			sourceTree = "<group>";
-		}
+		};
 		26F45F0CD4025C6CAEBAF039 /* BLE */ = {
 			isa = PBXGroup;
 			children = (
@@ -72,13 +72,13 @@
 			);
 			path = BLE;
 			sourceTree = "<group>";
-		}
+		};
 		2C689AD135515A2BAF443BC3 /* CoolerState.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = CoolerState.swift;
 			sourceTree = "<group>";
-		}
+		};
 		35BA99039BF954048E88685C /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
@@ -105,32 +105,32 @@
 			targets = (
 				475516DEEF8452ADBB62F226 /* B9XController */,
 			);
-		}
+		};
 		35FD6919046454CC87E80DC6 /* CoolerController.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = CoolerController.swift;
 			sourceTree = "<group>";
-		}
+		};
 		3685A1F057BA5127B0896547 /* B9XController.app */ = {
 			isa = PBXFileReference;
 			explicitFileType = wrapper.application;
 			includeInIndex = 0;
 			path = B9XController.app;
 			sourceTree = BUILT_PRODUCTS_DIR;
-		}
+		};
 		3CB245F5B3195BEEB06D7343 /* ContentView.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = ContentView.swift;
 			sourceTree = "<group>";
-		}
+		};
 		4510D5E12FCB5D419071BEE5 /* B9XIntents.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = B9XIntents.swift;
 			sourceTree = "<group>";
-		}
+		};
 		468D432389D95DD48CBEA137 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -150,7 +150,7 @@
 				FC417566198D5948BF052B1E /* MoreView.swift in Sources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-		}
+		};
 		475516DEEF8452ADBB62F226 /* B9XController */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4E9125441E5B5733AFB07493 /* Build configuration list for PBXNativeTarget "B9XController" */;
@@ -167,7 +167,7 @@
 			productName = B9XController;
 			productReference = 3685A1F057BA5127B0896547 /* B9XController.app */;
 			productType = "com.apple.product-type.application";
-		}
+		};
 		4DA463079CB459668C1E940E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -176,7 +176,7 @@
 				99C4D5369B9A5EBB9239E6F6 /* AppIntents.framework in Frameworks */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-		}
+		};
 		4E9125441E5B5733AFB07493 /* Build configuration list for PBXNativeTarget "B9XController" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -185,7 +185,7 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
-		}
+		};
 		519B558A26F85D45AB2FAAC4 /* UI */ = {
 			isa = PBXGroup;
 			children = (
@@ -199,39 +199,39 @@
 			);
 			path = UI;
 			sourceTree = "<group>";
-		}
+		};
 		667054C204C650E98FD83817 /* Assets.xcassets in Resources */ = {
 			isa = PBXBuildFile;
 			fileRef = BCE561B9FC085473B53BFAD4 /* Assets.xcassets */;
-		}
+		};
 		6875300C046E565AAF4A2067 /* ConnectView.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = ConnectView.swift;
 			sourceTree = "<group>";
-		}
+		};
 		69EC10E7357A5486844F670F /* CoolerState.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 2C689AD135515A2BAF443BC3 /* CoolerState.swift */;
-		}
+		};
 		6EC57CAADA2C53D9B32D030F /* DeviceView.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = DeviceView.swift;
 			sourceTree = "<group>";
-		}
+		};
 		787B797A70885794A3311655 /* GlassViews.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = GlassViews.swift;
 			sourceTree = "<group>";
-		}
+		};
 		79D74332DB0C5DAA80DFDC67 /* B9XProtocol.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = B9XProtocol.swift;
 			sourceTree = "<group>";
-		}
+		};
 		7B9CA693D31054AE9D6B0A6C /* B9XController */ = {
 			isa = PBXGroup;
 			children = (
@@ -239,11 +239,11 @@
 				1F3731B001FA5662B4CF0A41 /* Products */,
 			);
 			sourceTree = "<group>";
-		}
+		};
 		7EE7A55DFA425F82957C813A /* CoolerController.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 35FD6919046454CC87E80DC6 /* CoolerController.swift */;
-		}
+		};
 		8031C6538A0F5C288A92E62F /* B9XController */ = {
 			isa = PBXGroup;
 			children = (
@@ -253,28 +253,28 @@
 				D1DFBA4DB5DC515999D527E1 /* Controller */,
 				519B558A26F85D45AB2FAAC4 /* UI */,
 				A52BB5A9F3B5501198C49937 /* Intents */,
-				BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */
+				BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */,
 				1AEE3D0AF3FA555998BA3839 /* Info.plist */,
 				BCE561B9FC085473B53BFAD4 /* Assets.xcassets */,
 			);
 			path = B9XController;
 			sourceTree = "<group>";
-		}
+		};
 		8702C1D2CE1C504DA5843E6F /* CoreBluetooth.framework in Frameworks */ = {
 			isa = PBXBuildFile;
 			fileRef = 8D25F586F10552B7A237E8FF /* CoreBluetooth.framework */;
-		}
+		};
 		88681F75EBE154848FE67BAD /* LEDView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = F1DD99D0035053B8B28CC53F /* LEDView.swift */;
-		}
+		};
 		8D25F586F10552B7A237E8FF /* CoreBluetooth.framework */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = wrapper.framework;
 			name = CoreBluetooth.framework;
 			path = System/Library/Frameworks/CoreBluetooth.framework;
 			sourceTree = SDKROOT;
-		}
+		};
 		97BBDFA8EFE057D2A14ADAB7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -298,11 +298,11 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
-		}
+		};
 		99C4D5369B9A5EBB9239E6F6 /* AppIntents.framework in Frameworks */ = {
 			isa = PBXBuildFile;
 			fileRef = 08B39AA25A3F5936BFA6BC55 /* AppIntents.framework */;
-		}
+		};
 		9A12EB800D95539CBE723883 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -360,11 +360,11 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
-		}
+		};
 		9B04E29DB6B258F48F813D6E /* B9XIntents.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 4510D5E12FCB5D419071BEE5 /* B9XIntents.swift */;
-		}
+		};
 		A52BB5A9F3B5501198C49937 /* Intents */ = {
 			isa = PBXGroup;
 			children = (
@@ -372,37 +372,37 @@
 			);
 			path = Intents;
 			sourceTree = "<group>";
-		}
+		};
 		A72399D75E6859ADA49F65ED /* GlassViews.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 787B797A70885794A3311655 /* GlassViews.swift */;
-		}
+		};
 		ADCD2AB63AA555F7BFEC1EE2 /* BLEManager.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = BLEManager.swift;
 			sourceTree = "<group>";
-		}
+		};
 		B57334BF761B5C07B8F70163 /* B9XControllerApp.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */;
-		}
+		};
 		BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = B9XControllerApp.swift;
 			sourceTree = "<group>";
-		}
+		};
 		BCE561B9FC085473B53BFAD4 /* Assets.xcassets */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = folder.assetcatalog;
 			path = Assets.xcassets;
 			sourceTree = "<group>";
-		}
+		};
 		BE3D2127AF875E1F8C4FA884 /* ContentView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 3CB245F5B3195BEEB06D7343 /* ContentView.swift */;
-		}
+		};
 		BF2C729EF44D590FBDC93C50 /* Protocol */ = {
 			isa = PBXGroup;
 			children = (
@@ -410,15 +410,15 @@
 			);
 			path = Protocol;
 			sourceTree = "<group>";
-		}
+		};
 		BF7228312BD453698D49265C /* BLEManager.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = ADCD2AB63AA555F7BFEC1EE2 /* BLEManager.swift */;
-		}
+		};
 		C0EBD532C0F155989F2167D7 /* B9XProtocol.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 79D74332DB0C5DAA80DFDC67 /* B9XProtocol.swift */;
-		}
+		};
 		C316F7C4CD415EC790584069 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -478,7 +478,7 @@
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
-		}
+		};
 		C93A553B94A45D01BCCA65FD /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -486,7 +486,7 @@
 				667054C204C650E98FD83817 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-		}
+		};
 		C96C2F5E3E2751B2B21650B0 /* Build configuration list for PBXProject "B9XController" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -495,7 +495,7 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
-		}
+		};
 		CC73F77CE62358B5B1F4170F /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -503,7 +503,7 @@
 			);
 			path = Models;
 			sourceTree = "<group>";
-		}
+		};
 		D1DFBA4DB5DC515999D527E1 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
@@ -511,25 +511,25 @@
 			);
 			path = Controller;
 			sourceTree = "<group>";
-		}
+		};
 		D20FF93CC5815B768FA0C0B3 /* DeviceView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 6EC57CAADA2C53D9B32D030F /* DeviceView.swift */;
-		}
+		};
 		EEF3811084245339ADC7BC8D /* ConnectView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 6875300C046E565AAF4A2067 /* ConnectView.swift */;
-		}
+		};
 		F1DD99D0035053B8B28CC53F /* LEDView.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = LEDView.swift;
 			sourceTree = "<group>";
-		}
+		};
 		FC417566198D5948BF052B1E /* MoreView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 1416317DF3CC513697C03950 /* MoreView.swift */;
-		}
+		};
 	};
 	rootObject = 35BA99039BF954048E88685C /* Project object */;
 }
