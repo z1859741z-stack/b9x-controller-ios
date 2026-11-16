@@ -227,6 +227,7 @@ def main():
     project_release.pop("SWIFT_ACTIVE_COMPILATION_CONDITIONS", None)
 
     target_common = {
+        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
         "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
         "CODE_SIGN_IDENTITY": '""',
         "CODE_SIGN_STYLE": "Automatic",
