@@ -328,7 +328,8 @@ final class BLEManager: NSObject, ObservableObject {
                     writeQueue.asyncAfter(deadline: .now() + Self.writeTimeout, execute: workItem)
                 } else {
                     let workItem = DispatchWorkItem { [weak self] in
-                        self?.writeQueue.async {
+                        guard let self else { return }
+                        self.writeQueue.async {
                             guard self.inFlight?.data == item.data else { return }
                             self.inFlight = nil
                             DispatchQueue.main.async { item.completion?(true) }

@@ -761,7 +761,7 @@ struct ProtectionView: View {
                     VStack(spacing: 12) {
                         Toggle("低温保护（环境过冷时限制功率）", isOn: Binding(
                             get: { state.coldProtectionEnabled },
-                            set: { controller.offProtection(low: $0) }
+                            set: { controller.setColdProtectionEnabled($0) }
                         ))
                         HStack {
                             Text("高温保护")

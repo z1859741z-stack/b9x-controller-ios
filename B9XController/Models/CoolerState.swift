@@ -12,6 +12,9 @@ struct CoolerState {
     var windLevel: Int = 0
     var coldLevelOverclock: Int = 0
     var windLevelOverclock: Int = 0
+    /// 运行档位（状态帧 v[10]/v[11]；首页百分比用这两个换算）。
+    var coldRunLevel: Int = 0
+    var windRunLevel: Int = 0
     var speed: Int = 0
     var runMode: Int = B9XProtocol.modeSmart
     var overclockUsableLevel: Int = 0

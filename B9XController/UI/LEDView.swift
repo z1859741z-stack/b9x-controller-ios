@@ -414,7 +414,7 @@ struct HSVWheelView: View {
     @Binding var color: Color
 
     private let hueColors: [Color] = [
-        .red, .yellow, .green, .cyan, .blue, .magenta, .red,
+        .red, .yellow, .green, .cyan, .blue, Color(red: 1, green: 0, blue: 1), .red,
     ]
 
     var body: some View {
