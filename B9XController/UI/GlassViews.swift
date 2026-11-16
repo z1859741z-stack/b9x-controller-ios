@@ -1,6 +1,8 @@
 import SwiftUI
 
-// ------------------------------------------------------------ 主题（对照片：深色 + 圆角卡片 + 蓝色强调）
+// ------------------------------------------------------------ 主题
+// v2：全 App 跟随系统外观。卡片/背景/次要文字一律用系统语义色，
+// 亮色暗色都好看；只有强调色（蓝/青）与设备示意图保持固定配色。
 
 extension Color {
     init(hex: Int, opacity: Double = 1) {
@@ -13,15 +15,26 @@ extension Color {
         )
     }
 
-    static let b9xBackground = Color(hex: 0x0A0E16)
-    static let b9xCard = Color(hex: 0x151B28)
-    static let b9xCard2 = Color(hex: 0x1A2233)
+    /// 页面背景：跟随系统。
+    static let b9xBackground = Color(.systemBackground)
+    /// 卡片背景：跟随系统。
+    static let b9xCard = Color(.secondarySystemBackground)
+    /// 卡片内次级背景（未选中按钮等）：跟随系统。
+    static let b9xCard2 = Color(.tertiarySystemBackground)
+    /// 强调蓝。
     static let b9xAccent = Color(hex: 0x5B8CFF)
-    static let b9xAccentLight = Color(hex: 0x6EE7FF)
-    static let b9xTextDim = Color(hex: 0x8A94A6)
+    /// 强调青：亮色下用深一点的蓝，暗色下用亮青，保证两边都看得清。
+    static let b9xAccentLight = Color(UIColor { trait in
+        if trait.userInterfaceStyle == .dark {
+            return UIColor(red: 0x6E / 255, green: 0xE7 / 255, blue: 0xFF / 255, alpha: 1)
+        }
+        return UIColor(red: 0x0B / 255, green: 0x5E / 255, blue: 0xD6 / 255, alpha: 1)
+    })
+    /// 次要文字：跟随系统。
+    static let b9xTextDim = Color.secondary
 }
 
-/// 圆角深色卡片（对照片里的卡片样式）。
+/// 圆角卡片（对照片里的卡片样式），背景跟随系统。
 struct GlassCard<Content: View>: View {
     let content: Content
 
@@ -34,6 +47,10 @@ struct GlassCard<Content: View>: View {
             .padding(16)
             .background(Color.b9xCard)
             .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+            )
     }
 }
 
@@ -50,7 +67,7 @@ struct TemperatureRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.white.opacity(0.08), lineWidth: 14)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 14)
             Circle()
                 .trim(from: 0, to: max(progress, 0.02))
                 .stroke(
@@ -65,7 +82,7 @@ struct TemperatureRing: View {
             VStack(spacing: 2) {
                 Text(String(format: "%.1f", temperature))
                     .font(.system(size: 52, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 + Text("°C")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(Color.b9xTextDim)
@@ -81,49 +98,47 @@ struct TemperatureRing: View {
     }
 }
 
-/// 档位滑杆：按 B9X 档位表 [0, 19, 38, 57, 77, 95, 115, 134] 步进。
-struct LevelSlider: View {
+/// 数值滑杆：连续值，标题行显示“标题 数值 · 百分比”，不显示电压。
+/// 拖动中 onChange 实时回调，松手时 onEditingEnded 再回调一次做确认。
+struct ValueSlider: View {
     let title: String
-    let level: Int
-    let onChange: (Int) -> Void
+    let value: Binding<Double>
+    let range: ClosedRange<Double>
+    let step: Double
+    let display: String
+    let onChange: (Double) -> Void
+    let onEditingEnded: (Double) -> Void
 
-    @State private var index: Double = 0
+    @State private var dragging = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title)
                     .font(.subheadline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 Spacer()
-                Text("\(level) · \(B9XProtocol.voltsLabel(level))")
+                Text(display)
                     .font(.subheadline.monospaced())
                     .foregroundStyle(Color.b9xAccentLight)
             }
             Slider(
-                value: Binding(
-                    get: { Double(B9XProtocol.levels.firstIndex(of: level) ?? 0) },
-                    set: { newValue in
-                        let idx = Int(newValue)
-                        if idx >= 0 && idx < B9XProtocol.levels.count {
-                            onChange(B9XProtocol.levels[idx])
-                        }
+                value: value,
+                in: range,
+                step: step,
+                onEditingChanged: { editing in
+                    dragging = editing
+                    if !editing {
+                        onEditingEnded(value.wrappedValue)
                     }
-                ),
-                in: 0...Double(B9XProtocol.levels.count - 1),
-                step: 1
+                }
             )
             .tint(.b9xAccent)
-            HStack {
-                Text("关")
-                Spacer()
-                Text("最大")
+            .onChange(of: value.wrappedValue) { _, newValue in
+                if dragging {
+                    onChange(newValue)
+                }
             }
-            .font(.caption)
-            .foregroundStyle(Color.b9xTextDim)
-        }
-        .onAppear {
-            index = Double(B9XProtocol.levels.firstIndex(of: level) ?? 0)
         }
     }
 }
@@ -142,7 +157,7 @@ struct StatCell: View {
             HStack(alignment: .lastTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.title3.bold().monospaced())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 Text(unit)
                     .font(.caption)
                     .foregroundStyle(Color.b9xTextDim)
@@ -155,17 +170,83 @@ struct StatCell: View {
     }
 }
 
-/// 散热器示意图（圆形 + 雪花，代替产品实拍图）。
+/// 散热器示意图：圆形金属外圈 + 网纹 + 中央 Y 形标志（对照原版截图，
+/// 不要只放雪花）。这是产品图示，配色固定，不跟随系统。
 struct CoolerImageView: View {
     var body: some View {
         ZStack {
-            Circle().fill(Color.white.opacity(0.05))
-            Circle().stroke(Color.white.opacity(0.3), lineWidth: 5)
-            Circle().stroke(Color.b9xAccentLight.opacity(0.4), lineWidth: 1).padding(12)
-            Image(systemName: "snowflake")
-                .font(.system(size: 46, weight: .bold))
-                .foregroundStyle(Color.b9xAccentLight)
+            // 金属外圈。
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: 0xF2F3F5), Color(hex: 0xC9CDD4), Color(hex: 0x9AA0AB)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            // 内盘。
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [Color(hex: 0x4A5262), Color(hex: 0x232833)],
+                        center: .center,
+                        startRadius: 8,
+                        endRadius: 62
+                    )
+                )
+                .padding(7)
+            // 网纹：同心圆 + 放射线，裁成圆形。
+            ZStack {
+                ForEach(0..<12, id: \.self) { i in
+                    Rectangle()
+                        .fill(Color.white.opacity(0.14))
+                        .frame(width: 1)
+                        .rotationEffect(.degrees(Double(i) * 15))
+                }
+                ForEach([18, 30, 42, 54], id: \.self) { r in
+                    Circle()
+                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                        .frame(width: CGFloat(r) * 2, height: CGFloat(r) * 2)
+                }
+            }
+            .frame(width: 112, height: 112)
+            .clipShape(Circle())
+            // Y 形标志。
+            YMarkShape()
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: 0x8FB7FF), Color(hex: 0x3D6FE0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    style: StrokeStyle(lineWidth: 9, lineCap: .round, lineJoin: .round)
+                )
+                .frame(width: 44, height: 52)
+            // 左上高光。
+            Circle()
+                .trim(from: 0.55, to: 0.8)
+                .stroke(Color.white.opacity(0.55), lineWidth: 3)
+                .padding(4)
         }
+    }
+}
+
+/// Y 形标志路径（归一化 0...1 坐标内绘制）。
+struct YMarkShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let topY = rect.minY + rect.height * 0.04
+        let midY = rect.minY + rect.height * 0.52
+        let bottomY = rect.maxY - rect.height * 0.04
+        let leftX = rect.minX + rect.width * 0.06
+        let rightX = rect.maxX - rect.width * 0.06
+        let midX = rect.midX
+        p.move(to: CGPoint(x: leftX, y: topY))
+        p.addLine(to: CGPoint(x: midX, y: midY))
+        p.addLine(to: CGPoint(x: rightX, y: topY))
+        p.move(to: CGPoint(x: midX, y: midY))
+        p.addLine(to: CGPoint(x: midX, y: bottomY))
+        return p
     }
 }
 

@@ -6,12 +6,14 @@ import SwiftUI
 struct AutomationView: View {
     @EnvironmentObject private var controller: CoolerController
 
+    private var state: CoolerState { controller.state }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 Text("场景联动")
                     .font(.largeTitle.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 standbyCard
@@ -34,7 +36,7 @@ struct AutomationView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("超频体验")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                         Text("自动化待机")
                             .font(.subheadline)
                             .foregroundStyle(Color.b9xTextDim)
@@ -43,7 +45,7 @@ struct AutomationView: View {
                     Toggle("", isOn: $controller.automationStandby)
                         .labelsHidden()
                 }
-                Divider().background(Color.white.opacity(0.1))
+                Divider()
                 HStack {
                     statusColumn("电池", controller.batteryLevel >= 0 ? "\(controller.batteryLevel)%" : "--")
                     statusColumn("充电", controller.batteryCharging ? "是" : "否")
@@ -53,6 +55,7 @@ struct AutomationView: View {
                     .font(.caption)
                     .foregroundStyle(Color.b9xTextDim)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -64,7 +67,7 @@ struct AutomationView: View {
                 .foregroundStyle(Color.b9xTextDim)
             Text(value)
                 .font(.headline.monospaced())
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -78,10 +81,11 @@ struct AutomationView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("充电随动")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                         Text("手机充电时连接散热器并切换指定模式，不尝试软件关机。")
                             .font(.subheadline)
                             .foregroundStyle(Color.b9xTextDim)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
                     Toggle("", isOn: $controller.chargeFollowEnabled)
@@ -91,7 +95,7 @@ struct AutomationView: View {
                     HStack {
                         Text("充电时切换到")
                             .font(.subheadline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                         Spacer()
                         Picker("", selection: $controller.chargeFollowMode) {
                             Text("智能变频").tag(B9XProtocol.modeSmart)
@@ -116,10 +120,11 @@ struct AutomationView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("游戏联动")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                         Text("指定游戏进入前台后拥有最高自动化优先级。")
                             .font(.subheadline)
                             .foregroundStyle(Color.b9xTextDim)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
                     Toggle("", isOn: $controller.gameLinkageEnabled)
@@ -129,6 +134,7 @@ struct AutomationView: View {
                     Text("iOS 上 App 无法直接检测前台游戏。开启后请去快捷指令建自动化：打开游戏时运行“设置散热器模式”。")
                         .font(.caption)
                         .foregroundStyle(.yellow)
+                        .fixedSize(horizontal: false, vertical: true)
                     Link("去快捷指令设置自动化", destination: URL(string: "shortcuts://")!)
                         .font(.subheadline)
                 }
@@ -136,6 +142,7 @@ struct AutomationView: View {
         }
     }
 
+    /// 电池智能稳温 = 软件温控环路（softwareThermalMode 100），目标为单个电池目标温度。
     private var batteryCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
@@ -145,23 +152,35 @@ struct AutomationView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("电池智能稳温")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                         Text("持续追踪电池温度，智能变频进入并维持你设定的温度区间。")
                             .font(.subheadline)
                             .foregroundStyle(Color.b9xTextDim)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
-                    Toggle("", isOn: $controller.batterySmartTempEnabled)
-                        .labelsHidden()
+                    Toggle("", isOn: Binding(
+                        get: { state.softwareThermalMode == 100 },
+                        set: {
+                            markManualOverride()
+                            controller.setSoftwareThermalMode($0 ? 100 : 0)
+                        }
+                    ))
+                    .labelsHidden()
                 }
-                if controller.batterySmartTempEnabled {
-                    Text("iOS 读不到电池温度，用系统热状态代替：过热时降到区间下限，温热时取中间值。")
+                if state.softwareThermalMode == 100 {
+                    Text("电池温度 iOS 不提供，以系统热状态估算。")
                         .font(.caption)
                         .foregroundStyle(Color.b9xTextDim)
-                    Stepper("区间下限 \(controller.batteryTempMin)°C", value: $controller.batteryTempMin, in: 20...40)
-                        .foregroundStyle(.white)
-                    Stepper("区间上限 \(controller.batteryTempMax)°C", value: $controller.batteryTempMax, in: 25...45)
-                        .foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Stepper("电池目标 \(state.batteryTargetC)°C", value: Binding(
+                        get: { state.batteryTargetC },
+                        set: {
+                            markManualOverride()
+                            controller.setSoftwareTargets(batteryTargetC: $0, coolerTargetC: state.coolerTargetC)
+                        }
+                    ), in: 10...40)
+                    .foregroundStyle(.primary)
                 }
             }
         }
@@ -172,7 +191,7 @@ struct AutomationView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("手动接管窗口")
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 Text("手动切换模式后，联动暂时不抢回控制；场景变化后重新仲裁。")
                     .font(.subheadline)
                     .foregroundStyle(Color.b9xTextDim)
@@ -183,7 +202,7 @@ struct AutomationView: View {
                     .tint(.b9xAccent)
                 Text("优先级：游戏 > 电池温度 > 充电。超频体验与用户手动操作始终优先。")
                     .font(.subheadline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
             }
         }
     }

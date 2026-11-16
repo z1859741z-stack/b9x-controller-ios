@@ -32,7 +32,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
 				MARKETING_VERSION = 0.8.143;
-				PRODUCT_BUNDLE_IDENTIFIER = com.b9x.controller.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.enginecore.plus;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMBED_LIBRARIES_WITH_INSTALL = YES;
@@ -289,7 +289,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
 				MARKETING_VERSION = 0.8.143;
-				PRODUCT_BUNDLE_IDENTIFIER = com.b9x.controller.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.enginecore.plus;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;

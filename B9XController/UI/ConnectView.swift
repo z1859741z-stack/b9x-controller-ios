@@ -24,7 +24,7 @@ struct ConnectView: View {
                                 .foregroundStyle(.yellow)
                             Text(error)
                                 .font(.subheadline)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.primary)
                             Spacer()
                             Button("清除") { controller.clearError() }
                                 .font(.subheadline)
@@ -43,9 +43,9 @@ struct ConnectView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("冰环FLY")
+                Text("引擎核心 Plus")
                     .font(.largeTitle.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 Text("散热器控制、状态查看与自动联动")
                     .font(.subheadline)
                     .foregroundStyle(Color.b9xTextDim)
@@ -66,13 +66,13 @@ struct ConnectView: View {
                         .frame(width: 10, height: 10)
                     Text("已连接")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                     Spacer()
                     Text(controller.state.deviceName)
                         .font(.subheadline)
                         .foregroundStyle(Color.b9xTextDim)
                 }
-                Divider().background(Color.white.opacity(0.1))
+                Divider()
                 infoRow("固件版本", controller.state.firmwareVersion.isEmpty ? "—" : controller.state.firmwareVersion)
                 infoRow("MAC 地址", controller.state.mac.isEmpty ? "—" : controller.state.mac)
                 infoRow("连接状态", controller.connection.rawValue)
@@ -82,6 +82,7 @@ struct ConnectView: View {
                     Text("断开连接")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
+                        .foregroundStyle(.red)
                         .background(Color.red.opacity(0.2))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
@@ -98,7 +99,7 @@ struct ConnectView: View {
                         .frame(width: 10, height: 10)
                     Text("演示模式")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                     Spacer()
                     Text("Flydigi B9X")
                         .font(.subheadline)
@@ -126,7 +127,7 @@ struct ConnectView: View {
                 HStack {
                     Text("附近的散热器")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                     Spacer()
                     if controller.connection == .scanning {
                         ProgressView()
@@ -151,7 +152,7 @@ struct ConnectView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(device.name)
                                     .font(.subheadline.bold())
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(.primary)
                                 Text("信号 \(device.rssi) dBm")
                                     .font(.caption)
                                     .foregroundStyle(Color.b9xTextDim)
@@ -206,7 +207,7 @@ struct ConnectView: View {
             Spacer()
             Text(value)
                 .font(.subheadline.monospaced())
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
         }
     }
 }

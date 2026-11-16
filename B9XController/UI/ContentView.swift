@@ -71,7 +71,7 @@ struct ContentView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 16)
         }
-        .preferredColorScheme(.dark)
+        // v2：删强制深色，全 App 跟随系统外观。
         .onAppear {
             controller.bootstrap()
             if !appeared {
