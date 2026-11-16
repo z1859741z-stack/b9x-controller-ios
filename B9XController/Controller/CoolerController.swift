@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import UIKit
 import UserNotifications
 
 /// 运行日志条目（数据与高级 → 运行日志）。
@@ -419,7 +420,7 @@ final class CoolerController: ObservableObject {
         state.runMode = mode
         if manual {
             markManualOverride()
-            log("切换模式：\(modeName(mode))")
+            log("切换模式：\(Self.modeName(mode))")
         }
         rememberMode(
             mode,
@@ -464,16 +465,16 @@ final class CoolerController: ObservableObject {
     func setManual(coldLevel: Int = 0, windLevel: Int = 0) {
         setRunMode(
             mode: B9XProtocol.modeManual,
-            coldLevel: coldLevel == 0 ? state.coldLevel : coldLevel,
-            windLevel: windLevel == 0 ? state.windLevel : windLevel
+            windLevel: windLevel == 0 ? state.windLevel : windLevel,
+            coldLevel: coldLevel == 0 ? state.coldLevel : coldLevel
         )
     }
 
     func setOverclock(coldLevel: Int = 134, windLevel: Int = 77) {
         setRunMode(
             mode: B9XProtocol.modeOverclock,
-            coldLevelOverclock: coldLevel,
-            windLevelOverclock: windLevel
+            windLevelOverclock: windLevel,
+            coldLevelOverclock: coldLevel
         )
     }
 
