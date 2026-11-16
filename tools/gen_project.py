@@ -48,13 +48,14 @@ def main():
     extra_refs = {
         "Info.plist": "Info.plist",
         "Assets.xcassets": "Assets.xcassets",
+        "LaunchScreen.storyboard": "LaunchScreen.storyboard",
         "CoreBluetooth.framework": "CoreBluetooth.framework",
         "AppIntents.framework": "AppIntents.framework",
         "product": "B9XController.app",
     }
     for key, name in extra_refs.items():
         ids["fileref:" + key] = uid("fileref:" + key)
-    for key in ["Assets.xcassets", "CoreBluetooth.framework", "AppIntents.framework"]:
+    for key in ["Assets.xcassets", "LaunchScreen.storyboard", "CoreBluetooth.framework", "AppIntents.framework"]:
         ids["buildfile:" + key] = uid("buildfile:" + key)
     for key in ["sources-phase", "frameworks-phase", "resources-phase",
                 "target", "project",
@@ -92,6 +93,8 @@ def main():
             "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* %s */;\n\t\t}" % (ids["fileref:" + s], name))
     add(ids["buildfile:Assets.xcassets"], "Assets.xcassets in Resources",
         "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* Assets.xcassets */;\n\t\t}" % ids["fileref:Assets.xcassets"])
+    add(ids["buildfile:LaunchScreen.storyboard"], "LaunchScreen.storyboard in Resources",
+        "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* LaunchScreen.storyboard */;\n\t\t}" % ids["fileref:LaunchScreen.storyboard"])
     for fw in ["CoreBluetooth.framework", "AppIntents.framework"]:
         add(ids["buildfile:" + fw], fw + " in Frameworks",
             "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* %s */;\n\t\t}" % (ids["fileref:" + fw], fw))
@@ -105,6 +108,8 @@ def main():
         "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = text.plist.xml;\n\t\t\tpath = Info.plist;\n\t\t\tsourceTree = \"<group>\";\n\t\t}")
     add(ids["fileref:Assets.xcassets"], "Assets.xcassets",
         "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = folder.assetcatalog;\n\t\t\tpath = Assets.xcassets;\n\t\t\tsourceTree = \"<group>\";\n\t\t}")
+    add(ids["fileref:LaunchScreen.storyboard"], "LaunchScreen.storyboard",
+        "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = file.storyboard;\n\t\t\tpath = LaunchScreen.storyboard;\n\t\t\tsourceTree = \"<group>\";\n\t\t}")
     for fw in ["CoreBluetooth.framework", "AppIntents.framework"]:
         add(ids["fileref:" + fw], fw,
             "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = wrapper.framework;\n\t\t\tname = %s;\n\t\t\tpath = System/Library/Frameworks/%s;\n\t\t\tsourceTree = SDKROOT;\n\t\t}" % (fw, fw))
@@ -119,7 +124,7 @@ def main():
     add(ids["frameworks-phase"], "Frameworks",
         "{\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n%s\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % fw_files)
     add(ids["resources-phase"], "Resources",
-        "{\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t%s /* Assets.xcassets in Resources */,\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % ids["buildfile:Assets.xcassets"])
+        "{\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t%s /* Assets.xcassets in Resources */,\n\t\t\t\t%s /* LaunchScreen.storyboard in Resources */,\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % (ids["buildfile:Assets.xcassets"], ids["buildfile:LaunchScreen.storyboard"]))
     src_files = ",\n".join(
         "\t\t\t\t%s /* %s in Sources */" % (ids["buildfile:" + s], os.path.basename(s))
         for s in sources
@@ -142,6 +147,7 @@ def main():
         app_children.append("\t\t\t\t%s /* %s */," % (ids["fileref:" + s], os.path.basename(s)))
     app_children.append("\t\t\t\t%s /* Info.plist */," % ids["fileref:Info.plist"])
     app_children.append("\t\t\t\t%s /* Assets.xcassets */," % ids["fileref:Assets.xcassets"])
+    app_children.append("\t\t\t\t%s /* LaunchScreen.storyboard */," % ids["fileref:LaunchScreen.storyboard"])
     add(ids["group-app"], "B9XController",
         "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n%s\n\t\t\t);\n\t\t\tpath = B9XController;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % "\n".join(app_children))
     add(ids["group-products"], "Products",

@@ -126,6 +126,10 @@
 			path = ContentView.swift;
 			sourceTree = "<group>";
 		};
+		450846EF006E5508BCB24097 /* LaunchScreen.storyboard in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = A81C558CD4FF544789BC28D1 /* LaunchScreen.storyboard */;
+		};
 		4510D5E12FCB5D419071BEE5 /* B9XIntents.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
@@ -257,6 +261,7 @@
 				BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */,
 				1AEE3D0AF3FA555998BA3839 /* Info.plist */,
 				BCE561B9FC085473B53BFAD4 /* Assets.xcassets */,
+				A81C558CD4FF544789BC28D1 /* LaunchScreen.storyboard */,
 			);
 			path = B9XController;
 			sourceTree = "<group>";
@@ -379,6 +384,12 @@
 			isa = PBXBuildFile;
 			fileRef = 787B797A70885794A3311655 /* GlassViews.swift */;
 		};
+		A81C558CD4FF544789BC28D1 /* LaunchScreen.storyboard */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = file.storyboard;
+			path = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
 		ADCD2AB63AA555F7BFEC1EE2 /* BLEManager.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
@@ -486,6 +497,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				667054C204C650E98FD83817 /* Assets.xcassets in Resources */,
+				450846EF006E5508BCB24097 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
