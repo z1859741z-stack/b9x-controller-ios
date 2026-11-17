@@ -99,7 +99,15 @@ struct ContentView: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 1)
             .padding(.bottom, 7)
-            .tabBarGlass()
+            // 液态玻璃放背景层，不包按钮：.glassEffect 会在内容上方生成一个
+            // UIPlatformGlassInteractionView，吃掉全部点按（三个 tab 全 MISS，
+            // harness 实测）。玻璃放背景后，按钮在玻璃上方，点按直接落到按钮上；
+            // 玻璃照样折射后面的内容，外观不变。
+            .background(
+                Capsule()
+                    .fill(Color.clear)
+                    .tabBarGlass()
+            )
             .padding(.horizontal, 19.3)
             .padding(.bottom, 16)
 
