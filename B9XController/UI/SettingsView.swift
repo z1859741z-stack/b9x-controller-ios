@@ -9,7 +9,7 @@ struct SettingsExportFile: Transferable {
     let data: Data
 
     static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(contentType: .json) { $0.data }
+        DataRepresentation(exportedContentType: .json) { $0.data }
     }
 }
 

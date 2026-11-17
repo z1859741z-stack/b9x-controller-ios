@@ -61,7 +61,7 @@ struct FirmwareImage: Identifiable, Equatable {
 }
 
 /// 固件刷写阶段（DEEP-DIVE §1.1 `FirmwareStage`）。
-enum FirmwareStage {
+enum FirmwareStage: Equatable {
     case idle
     case preparing
     case validating

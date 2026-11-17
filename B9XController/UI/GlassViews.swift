@@ -113,12 +113,14 @@ struct TemperatureRing: View {
                 )
                 .rotationEffect(.degrees(-90))
             VStack(spacing: 2) {
-                Text(String(format: "%.1f", temperature))
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-                + Text("°C")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Color.b9xTextDim)
+                HStack(alignment: .lastTextBaseline, spacing: 0) {
+                    Text(String(format: "%.1f", temperature))
+                        .font(.system(size: 52, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                    Text("°C")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(Color.b9xTextDim)
+                }
                 Text("制冷面温度")
                     .font(.subheadline)
                     .foregroundStyle(Color.b9xTextDim)

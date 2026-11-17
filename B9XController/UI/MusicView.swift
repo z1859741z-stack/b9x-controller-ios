@@ -110,7 +110,7 @@ final class MusicEngine: ObservableObject {
     /// 申请录音权限并启动。权限被拒时只提示，不崩、不重试循环。
     func start() {
         guard !isRunning else { return }
-        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+        AVAudioApplication.requestRecordPermission { [weak self] granted in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 if !granted {

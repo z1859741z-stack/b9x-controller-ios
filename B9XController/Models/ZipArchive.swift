@@ -223,24 +223,17 @@ struct ZipArchive {
         input.append(payload)
         input.append(contentsOf: [0, 0, 0, 0])
         var output = Data(count: expectedSize)
-        var stream = compression_stream()
-        guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB) != COMPRESSION_STATUS_ERROR else {
-            throw ZipError.decompressionFailed(entryName)
-        }
-        defer { compression_stream_destroy(&stream) }
-        var decoded = 0
-        input.withUnsafeBytes { inPtr in
+        // 一次性解码（COMPRESSION_ZLIB 要的就是上面拼好的 zlib 包裹流）。
+        // 不用流式 API：Xcode 26 的 Swift 导入里 compression_stream_init /
+        // compression_stream_decode 解析不到，改用确定可用的
+        // compression_decode_buffer。
+        let decoded: Int = input.withUnsafeBytes { inPtr in
             output.withUnsafeMutableBytes { outPtr in
-                guard let inBase = inPtr.baseAddress, let outBase = outPtr.baseAddress else { return }
-                stream.src_ptr = inBase.assumingMemoryBound(to: UInt8.self)
-                stream.src_size = input.count
-                stream.dst_ptr = outBase.assumingMemoryBound(to: UInt8.self)
-                stream.dst_size = expectedSize
-                var status = compression_stream_decode(&stream, 0)
-                while status == COMPRESSION_STATUS_OK && stream.src_size > 0 && stream.dst_size > 0 {
-                    status = compression_stream_decode(&stream, 0)
-                }
-                decoded = expectedSize - stream.dst_size
+                guard let inBase = inPtr.baseAddress, let outBase = outPtr.baseAddress else { return 0 }
+                return compression_decode_buffer(
+                    outBase.assumingMemoryBound(to: UInt8.self), expectedSize,
+                    inBase.assumingMemoryBound(to: UInt8.self), input.count,
+                    nil, COMPRESSION_ZLIB)
             }
         }
         guard decoded == expectedSize else { throw ZipError.decompressionFailed(entryName) }

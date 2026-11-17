@@ -1696,7 +1696,7 @@ final class CoolerController: ObservableObject {
         state.lastError = nil
     }
 
-    static func modeName(_ mode: Int) -> String {
+    nonisolated static func modeName(_ mode: Int) -> String {
         switch mode {
         case B9XProtocol.modeSmart: return "智能温控"
         case B9XProtocol.modeManual: return "手动"
@@ -1707,7 +1707,7 @@ final class CoolerController: ObservableObject {
         }
     }
 
-    static func thermalModeName(_ mode: Int) -> String {
+    nonisolated static func thermalModeName(_ mode: Int) -> String {
         switch mode {
         case B9XProtocol.thermalModeBattery: return "电池温控"
         case B9XProtocol.thermalModeCoolerTarget: return "目标温控"
