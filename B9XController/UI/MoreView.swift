@@ -9,9 +9,12 @@ struct MoreView: View {
     @EnvironmentObject private var controller: CoolerController
     @Environment(\.openURL) private var openURL
     @ObservedObject private var appearance = AppearanceSettings.shared
+    @StateObject private var tour = TourDriver.shared
     @State private var showUpdateAlert = false
     @State private var updateMessage = ""
     @State private var updateURL: URL?
+    /// 巡游（CI 截图）第 8 步自动打开法律页用。
+    @State private var showLegal = false
 
     var body: some View {
         NavigationStack {
@@ -23,6 +26,10 @@ struct MoreView: View {
                     deviceCard
                     dataCard
                     demoCard
+                    // 巡游（CI 截图）专用隐藏入口：第 8 步自动打开法律页。
+                    NavigationLink(destination: LegalDocumentView(readOnly: true), isActive: $showLegal) {
+                        EmptyView()
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
@@ -32,6 +39,12 @@ struct MoreView: View {
             .navigationTitle("我的")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
+            // 巡游（CI 截图）：第 8 步进法律页，第 9 步退回。
+            .onChange(of: tour.step) { _, step in
+                guard tour.isTouring else { return }
+                if step == 8 { showLegal = true }
+                if step == 9 { showLegal = false }
+            }
         }
         .alert("检查更新", isPresented: $showUpdateAlert) {
             if let url = updateURL {

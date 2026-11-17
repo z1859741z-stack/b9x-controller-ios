@@ -21,20 +21,6 @@
                ReferencedContainer = "container:B9XController.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "64778E26B1F152C7AEC40EEA"
-               BuildableName = "B9XControllerUITests.xctest"
-               BlueprintName = "B9XControllerUITests"
-               ReferencedContainer = "container:B9XController.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -43,18 +29,6 @@
       selectedLauncherIdentifier = "Xcode.Debugger.Foundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "64778E26B1F152C7AEC40EEA"
-               BuildableName = "B9XControllerUITests.xctest"
-               BlueprintName = "B9XControllerUITests"
-               ReferencedContainer = "container:B9XController.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

@@ -128,6 +128,7 @@ enum FreeCurve {
 struct ModeGridView: View {
     @EnvironmentObject private var controller: CoolerController
     @AppStorage("overclockWarningAcknowledged") private var overclockAck = false
+    @StateObject private var tour = TourDriver.shared
     @State private var showOverclockWarning = false
     @State private var showBatteryTargetSheet = false
     @State private var showCoolerTargetSheet = false
@@ -255,6 +256,13 @@ struct ModeGridView: View {
         }
         .sheet(isPresented: $showCoolerTargetSheet) {
             TargetAdjustSheet(kind: .cooler)
+        }
+        // 巡游（CI 截图）：按步骤只改本地选中态展示，不发任何模式帧。
+        .onChange(of: tour.step) { _, step in
+            guard tour.isTouring, step < DeviceMode.allCases.count else { return }
+            withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.8)) {
+                localMode = DeviceMode.allCases[step]
+            }
         }
     }
 

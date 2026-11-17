@@ -11,15 +11,6 @@
 			path = ZipArchive.swift;
 			sourceTree = "<group>";
 		};
-		07A5CE657AA25F9DAA1AF14B /* Build configuration list for PBXNativeTarget "B9XControllerUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				8DE34A582C365D719E6A482A /* Debug */,
-				47437249B01A59CC80A4B6BA /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		08B39AA25A3F5936BFA6BC55 /* AppIntents.framework */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = wrapper.framework;
@@ -87,10 +78,6 @@
 			isa = PBXBuildFile;
 			fileRef = 8107D20DAAEF544C9DBFA6AF /* AboutViews.swift */;
 		};
-		1ED3CDE82E3452AAA8BBE726 /* UITourTests.swift in Sources */ = {
-			isa = PBXBuildFile;
-			fileRef = 942FE593CF0B51D2B27284C2 /* UITourTests.swift */;
-		};
 		1F3731B001FA5662B4CF0A41 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -108,14 +95,6 @@
 		263CD78DF6A9587C859F3786 /* HomeView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = CAD535057C405E7A857D3E67 /* HomeView.swift */;
-		};
-		26E000222ACC551598645E5C /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				1ED3CDE82E3452AAA8BBE726 /* UITourTests.swift in Sources */
-			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		26F45F0CD4025C6CAEBAF039 /* BLE */ = {
 			isa = PBXGroup;
@@ -168,7 +147,6 @@
 			projectRoot = "";
 			targets = (
 				475516DEEF8452ADBB62F226 /* B9XController */,
-				64778E26B1F152C7AEC40EEA /* B9XControllerUITests */,
 			);
 		};
 		35CA2339675C539681650F6D /* CubeLightingView.swift */ = {
@@ -263,7 +241,8 @@
 				FC417566198D5948BF052B1E /* MoreView.swift in Sources */,
 				4D9438EA3B40558ABF477C20 /* MusicView.swift in Sources */,
 				3762B39749E0505CA260CD84 /* PetViews.swift in Sources */,
-				45D40E2B3F4D5B4CBBAA4ED9 /* SettingsView.swift in Sources */
+				45D40E2B3F4D5B4CBBAA4ED9 /* SettingsView.swift in Sources */,
+				DB95E86F996452C09DA5C72B /* TourDriver.swift in Sources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -272,26 +251,6 @@
 			lastKnownFileType = sourcecode.swift;
 			path = TelinkOTA.swift;
 			sourceTree = "<group>";
-		};
-		47437249B01A59CC80A4B6BA /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Automatic;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks");
-				PRODUCT_BUNDLE_IDENTIFIER = com.enginecore.plus.uitests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-				TEST_TARGET_NAME = B9XController;
-			};
-			name = Release;
 		};
 		475516DEEF8452ADBB62F226 /* B9XController */ = {
 			isa = PBXNativeTarget;
@@ -355,7 +314,8 @@
 				1416317DF3CC513697C03950 /* MoreView.swift */,
 				80CF8136A4EF53918EB398E2 /* MusicView.swift */,
 				BE7B85DAF0D659EFAA16CA5E /* PetViews.swift */,
-				D023E1C929475F29AA6CC114 /* SettingsView.swift */
+				D023E1C929475F29AA6CC114 /* SettingsView.swift */,
+				F1B22190526F5A5CBB4E9486 /* TourDriver.swift */
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -369,23 +329,6 @@
 			lastKnownFileType = sourcecode.swift;
 			path = Secrets.swift;
 			sourceTree = "<group>";
-		};
-		64778E26B1F152C7AEC40EEA /* B9XControllerUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 07A5CE657AA25F9DAA1AF14B /* Build configuration list for PBXNativeTarget "B9XControllerUITests" */;
-			buildPhases = (
-				26E000222ACC551598645E5C /* Sources */,
-				692F19D48FAC5035985C33B8 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				9933478322CC50F18928F75B /* PBXTargetDependency */,
-			);
-			name = B9XControllerUITests;
-			productName = B9XControllerUITests;
-			productReference = 71F8A0583B8255C4B1BE9109 /* B9XControllerUITests.xctest */;
-			productType = "com.apple.product-type.ui-testing";
 		};
 		667054C204C650E98FD83817 /* Assets.xcassets in Resources */ = {
 			isa = PBXBuildFile;
@@ -402,13 +345,6 @@
 			lastKnownFileType = sourcecode.swift;
 			path = ConnectView.swift;
 			sourceTree = "<group>";
-		};
-		692F19D48FAC5035985C33B8 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		69EC10E7357A5486844F670F /* CoolerState.swift in Sources */ = {
 			isa = PBXBuildFile;
@@ -439,13 +375,6 @@
 			lastKnownFileType = sourcecode.swift;
 			path = DeviceView.swift;
 			sourceTree = "<group>";
-		};
-		71F8A0583B8255C4B1BE9109 /* B9XControllerUITests.xctest */ = {
-			isa = PBXFileReference;
-			explicitFileType = wrapper.cfbundle;
-			includeInIndex = 0;
-			path = B9XControllerUITests.xctest;
-			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		752ECFDF63B150CDA4C3BEBB /* Secrets.swift in Sources */ = {
 			isa = PBXBuildFile;
@@ -478,7 +407,6 @@
 			children = (
 				8031C6538A0F5C288A92E62F /* B9XController */,
 				1F3731B001FA5662B4CF0A41 /* Products */,
-				A9BDA6D7B99352B0A669522E /* B9XControllerUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -539,34 +467,6 @@
 			path = System/Library/Frameworks/CoreBluetooth.framework;
 			sourceTree = SDKROOT;
 		};
-		8DE34A582C365D719E6A482A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Automatic;
-				ENABLE_TESTABILITY = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks");
-				PRODUCT_BUNDLE_IDENTIFIER = com.enginecore.plus.uitests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-				TEST_TARGET_NAME = B9XController;
-			};
-			name = Debug;
-		};
-		942FE593CF0B51D2B27284C2 /* UITourTests.swift */ = {
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.swift;
-			path = UITourTests.swift;
-			sourceTree = "<group>";
-		};
 		97BBDFA8EFE057D2A14ADAB7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -591,11 +491,6 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
-		};
-		9933478322CC50F18928F75B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 475516DEEF8452ADBB62F226 /* B9XController */;
-			targetProxy = E8E688A91DD45876800CA3B6 /* PBXContainerItemProxy */;
 		};
 		99C4D5369B9A5EBB9239E6F6 /* AppIntents.framework in Frameworks */ = {
 			isa = PBXBuildFile;
@@ -689,14 +584,6 @@
 			isa = PBXFileReference;
 			lastKnownFileType = file.storyboard;
 			path = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-		A9BDA6D7B99352B0A669522E /* B9XControllerUITests */ = {
-			isa = PBXGroup;
-			children = (
-				942FE593CF0B51D2B27284C2 /* UITourTests.swift */
-			);
-			path = B9XControllerUITests;
 			sourceTree = "<group>";
 		};
 		ADCD2AB63AA555F7BFEC1EE2 /* BLEManager.swift */ = {
@@ -887,6 +774,10 @@
 			path = FirmwareImage.swift;
 			sourceTree = "<group>";
 		};
+		DB95E86F996452C09DA5C72B /* TourDriver.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = F1B22190526F5A5CBB4E9486 /* TourDriver.swift */;
+		};
 		E1C4666C11D65611B2055BE1 /* FirmwareView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 678360371EF852A080715399 /* FirmwareView.swift */;
@@ -904,13 +795,6 @@
 		E73A5CCDD6DA5183A546CF9B /* 8.4.7.bin in Resources */ = {
 			isa = PBXBuildFile;
 			fileRef = 0AE603BFD95C54FFAE2A16C7 /* 8.4.7.bin */;
-		};
-		E8E688A91DD45876800CA3B6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 35BA99039BF954048E88685C /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 475516DEEF8452ADBB62F226;
-			remoteInfo = B9XController;
 		};
 		E9268BB5D66E59789F3C6B1F /* ZipArchive.swift in Sources */ = {
 			isa = PBXBuildFile;
@@ -934,6 +818,12 @@
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = LCDView.swift;
+			sourceTree = "<group>";
+		};
+		F1B22190526F5A5CBB4E9486 /* TourDriver.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = TourDriver.swift;
 			sourceTree = "<group>";
 		};
 		F1DD99D0035053B8B28CC53F /* LEDView.swift */ = {

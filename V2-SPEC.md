@@ -228,7 +228,7 @@
 
 **（4）勘误 10.5：`runFetchLoop` 没有间隔——它根本不是轮询循环。** jadx 指令 dump（`AbstractDataInteractionController.Y`）显示：mutex 加锁 → `ConcurrentLinkedQueue.poll()` → 取到命令就 `X()` 写出、取不到就回头等锁；全程无 delay/sleep/定时。它是写队列的消费泵（由 `addCommandToQueue` 后 `unlockMutex` 驱动），不是状态轮询器。"间隔未恢复"问题本身不存在。
 
-**（5）全 App Dart 代码零周期轮询。** `Timer.periodic` 出现 0 次；仅 4 处一次性 `Timer`（LED 编辑页 100ms/300ms 防抖、模式控制 800ms、设备列表 16ms），全与连接无关。结论：**官方 7.2.11.2 里没有任何一方周期性发 `[0x13]`**——状态帧靠 FFE1 notify 由设备主动推送（CCCD 使能后即流式上报）。v2 iOS 的 5 秒 `[0x13]` 轮询可能是多余的：下一轮可真机验证——停掉轮询看状态帧是否继续流；若继续流，删轮询（减 BLE 写流量、减写队列占用）；若停流，保留轮询。先验证再改。
+**（5）全 App Dart 代码零周期轮询。** `Timer.periodic` 出现 0 次；仅 4 处一次性 `Timer`（LED 编辑页 100ms/300ms 防抖、模式控制 800ms、设备列表 16ms），全与连接无关。结论：**官方 7.2.11.2 里没有任何一方周期性发 `[0x13]`**——状态帧靠 FFE4 notify 由设备主动推送（CCCD 使能后即流式上报）。v2 iOS 的 5 秒 `[0x13]` 轮询可能是多余的：下一轮可真机验证——停掉轮询看状态帧是否继续流；若继续流，删轮询（减 BLE 写流量、减写队列占用）；若停流，保留轮询。先验证再改。
 
 **（6）6000 转出处已定：实测转速的显示刻度，不是设定值。** 官方 Dart B9X 能力表（`waspwing_b9.dart`）：ColdLevelOption 风量设定值只有 4000/4500/5700（对应 cold 145/155/175），OverclockLevel 只有 none/level1/level2，最高档（cold 175、wind 5700）为 level2；官方 Dart 与 dex 散热代码里没有任何 6000 设定。6000 只出现在冰环自家代码 `B9xHyperOsIslandSupport.java:676`：转速百分比 = `rpm / 6000.0 * 100`——即 6000 是转速条的满刻度分母。用户说的"超频能到 6000" = Freeze 超频下风扇实测转速可冲到 6000 转附近显示，与 v2 备忘的"wind ±300 容差"一致。无代码改动，答用户时按此口径。
 

@@ -6,6 +6,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var controller: CoolerController
     @ObservedObject private var appearance = AppearanceSettings.shared
+    @StateObject private var tour = TourDriver.shared
     @State private var tab: Tab = .home
     @State private var appeared = false
     @State private var showStartup = false
@@ -98,6 +99,7 @@ struct ContentView: View {
         .ignoresSafeArea(edges: .bottom)
         .onAppear {
             controller.bootstrap()
+            tour.start()
             if !appeared {
                 appeared = true
                 tab = Tab(rawValue: appearance.defaultTab) ?? .home
@@ -108,6 +110,17 @@ struct ContentView: View {
                             showStartup = false
                         }
                     }
+                }
+            }
+        }
+        // 巡游（CI 截图）：按步骤切 tab（0–5 首页、6 自动化、7–8 我的、9 回首页）。
+        .onChange(of: tour.step) { _, step in
+            guard tour.isTouring else { return }
+            withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
+                switch step {
+                case 6: tab = .automation
+                case 7, 8: tab = .my
+                default: tab = .home
                 }
             }
         }
