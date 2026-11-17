@@ -63,6 +63,18 @@ jobs:
           xcodebuild -version
           xcrun simctl list devices available | grep -i "iPhone 16 Pro Max" || true
 
+      - name: Prepare iPhone 16 Pro Max simulator
+        run: |
+          if xcrun simctl list devices available | grep -q "iPhone 16 Pro Max"; then
+            echo "iPhone 16 Pro Max simulator already exists"
+          elif xcrun simctl list devicetypes | grep -q "iPhone-16-Pro-Max"; then
+            xcrun simctl create "iPhone 16 Pro Max" com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro-Max
+          else
+            echo "No iPhone 16 Pro Max device type; falling back to iPhone 17 Pro Max (same 440x956pt screen)"
+            xcrun simctl create "iPhone 16 Pro Max" com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max || true
+          fi
+          xcrun simctl list devices available | grep -i "iPhone 16 Pro Max" || true
+
       - name: Run UI tour on simulator
         run: |
           xcodebuild test \
