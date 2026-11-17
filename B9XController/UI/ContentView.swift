@@ -114,6 +114,7 @@ struct ContentView: View {
         .ignoresSafeArea(edges: .bottom)
         .onAppear {
             controller.bootstrap()
+            tour.start()
             if !appeared {
                 appeared = true
                 tab = Tab(rawValue: appearance.defaultTab) ?? .home
@@ -127,15 +128,8 @@ struct ContentView: View {
                 }
             }
         }
-        // 巡游驱动（CI 截图）：1.6 秒一步，调 advance() 推进 step，
+        // 巡游驱动（CI 截图）：TourDriver.start() 起 GCD 链，1.6 秒一步，
         // 各页面的 onChange(of: tour.step) 跟随切模式/tab。
-        .task {
-            guard tour.isTouring else { return }
-            for _ in 1...TourDriver.lastStep {
-                try? await Task.sleep(for: .seconds(1.6))
-                tour.advance()
-            }
-        }
         // 巡游（CI 截图）：按步骤切 tab（0–5 首页、6 自动化、7–8 我的、9 回首页）。
         .onChange(of: tour.step) { _, step in
             guard tour.isTouring else { return }
