@@ -376,6 +376,12 @@ struct ModeGridView: View {
             .foregroundStyle(selected ? .white : .primary)
             .clipShape(RoundedRectangle(cornerRadius: 14))
         }
+        // 对照探针（点按测试用）：记下这个预设按钮的全局 frame。
+        // 它是用户确认能点按的 SwiftUI Button（切预设），拿它当对照，
+        // 看 harness 的 UIKit hitTest 能不能找到 SwiftUI 按钮。
+        .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame in
+            TapTestDriver.shared.recordFrame(tab: "preset-\(title)", frame: frame)
+        }
     }
 
     /// 点按立即本地乐观更新选中态（弹簧动画）+ 120ms 防抖后异步发帧；

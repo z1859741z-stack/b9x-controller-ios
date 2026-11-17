@@ -333,5 +333,19 @@ final class TapTestDriver: ObservableObject {
         if let f = frames["automation"] {
             report += "\n自动化 frame: (\(Int(f.origin.x)),\(Int(f.origin.y)),\(Int(f.size.width))x\(Int(f.size.height)))"
         }
+        // 对照：探“极寒”预设按钮（用户确认能点按的 SwiftUI Button）。
+        // 若它也 MISS（命中容器），说明 UIKit hitTest 根本看不见 SwiftUI 按钮，
+        // harness 的 MISS 是假阴性，不能当成“按钮坏了”的证据。
+        if let f = frames["preset-极寒"] {
+            let center = CGPoint(x: f.midX, y: f.midY)
+            let (control, topClass) = hitControl(at: center)
+            if let control {
+                report += "\n对照 极寒: HIT \(type(of: control))"
+            } else {
+                report += "\n对照 极寒: MISS -> \(topClass)"
+            }
+        } else {
+            report += "\n对照 极寒: 无 frame"
+        }
     }
 }
