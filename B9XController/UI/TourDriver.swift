@@ -1,31 +1,26 @@
-import Foundation
-import Combine
+import SwiftUI
 
-/// 模拟器截图巡游驱动：只在启动参数含 -UITour 时激活（CI 截图用）。
-/// 按节拍推进步骤，各页面跟随步骤切换本地选中态 / tab；不发任何 BLE 帧，
-/// 不改任何持久状态，真机用户永远不会触发。
+/// CI 截图巡游驱动（仅当启动参数含 -UITour 时激活）：
+/// App 按节拍切模式/tab，工作流用 simctl 每步截屏，助手自己看图核对界面。
+/// 只改 UI 本地展示状态（localMode / tab / 法律页开关），不发任何 BLE 帧，
+/// 不改持久状态；真机用户永远进不来（无启动参数时 isTouring 为 false）。
+///
+/// 驱动方式：ContentView 的 .task 里 Task.sleep 循环调用 advance()。
+/// 不用 Timer.scheduledTimer——实测在模拟器里它不推进（run 43995047613
+/// 的 10 张截图只拍到初始状态，step 一次没变）。
 final class TourDriver: ObservableObject {
     static let shared = TourDriver()
 
-    /// 步骤：0 智能 / 1 固定 / 2 自由 / 3 电池 / 4 目标 / 5 超频 /
-    /// 6 自动化 tab / 7 我的 tab / 8 关于页（法律）/ 9 回首页。
+    /// 总步数：0 智能 / 1 固定 / 2 自由 / 3 电池 / 4 目标 / 5 超频 /
+    /// 6 自动化 tab / 7 我的 tab / 8 关于页法律 / 9 回首页。
     static let lastStep = 9
 
     @Published private(set) var step = 0
+
     var isTouring: Bool { CommandLine.arguments.contains("-UITour") }
 
-    private var timer: Timer?
-
-    func start() {
-        guard isTouring, timer == nil else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 1.6, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            if step < Self.lastStep {
-                step += 1
-            } else {
-                timer?.invalidate()
-                timer = nil
-            }
-        }
+    func advance() {
+        guard isTouring, step < Self.lastStep else { return }
+        step += 1
     }
 }

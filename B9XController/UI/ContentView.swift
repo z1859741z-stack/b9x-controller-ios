@@ -94,16 +94,30 @@ struct ContentView: View {
                 startupOverlay
                     .transition(.opacity)
             }
+
+            // 巡游角标（仅 CI 截图时显示）：截图上直接看到当前步数，
+            // 步数不动就说明巡游没在跑。
+            if tour.isTouring {
+                VStack {
+                    Text("巡游 \(tour.step)/\(TourDriver.lastStep)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding(.top, 54)
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+            }
         }
         // 底栏要贴到离屏底 20pt（原版底边距约 21pt），须伸进底部安全区。
         .ignoresSafeArea(edges: .bottom)
         .onAppear {
             controller.bootstrap()
-            tour.start()
             if !appeared {
                 appeared = true
                 tab = Tab(rawValue: appearance.defaultTab) ?? .home
-                if appearance.startupAnimationEnabled {
+                if appearance.startupAnimationEnabled && !tour.isTouring {
                     showStartup = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
                         withAnimation(.easeOut(duration: appearance.effectiveAnimationDuration)) {
@@ -111,6 +125,15 @@ struct ContentView: View {
                         }
                     }
                 }
+            }
+        }
+        // 巡游驱动（CI 截图）：1.6 秒一步，调 advance() 推进 step，
+        // 各页面的 onChange(of: tour.step) 跟随切模式/tab。
+        .task {
+            guard tour.isTouring else { return }
+            for _ in 1...TourDriver.lastStep {
+                try? await Task.sleep(for: .seconds(1.6))
+                tour.advance()
             }
         }
         // 巡游（CI 截图）：按步骤切 tab（0–5 首页、6 自动化、7–8 我的、9 回首页）。

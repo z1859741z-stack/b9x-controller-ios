@@ -99,7 +99,9 @@ jobs:
           # -UITour：App 内巡游按 1.6 秒一步切模式/tab，只改 UI 本地状态、不发 BLE。
           xcrun simctl launch "$SIM" com.enginecore.plus -UITour
           mkdir -p sim-screenshots
-          sleep 2.5
+          # 首张在 step 0（智能）区间内拍：.task 从 ContentView 出现起 1.6 秒一步，
+          # 之后每 1.6 秒一张，正好对上 1..9 步；角标会写明实际步数。
+          sleep 1.5
           xcrun simctl io "$SIM" screenshot sim-screenshots/01-home-smart.png
           for s in manual free battery target overclock automation my legal back-home; do
             sleep 1.6
