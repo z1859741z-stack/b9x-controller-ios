@@ -118,7 +118,7 @@ struct LicensesView: View {
                                 Divider()
                             }
                         }
-                        Text("开源组件的版权声明和许可按其自身要求保留（LegalText 第 22 条）。")
+                        Text("第三方组件的版权与许可声明，仍照各组件自己的规矩保留（LegalText 第 22 条）。")
                             .font(.caption)
                             .foregroundStyle(Color.b9xTextDim)
                             .fixedSize(horizontal: false, vertical: true)
