@@ -125,6 +125,12 @@ jobs:
             fi
             i=$((i + 1))
           done
+          # 点按穿透测试：单独启动一次（-UITapTest，不带巡游），等 harness
+          # 跑完（2.5s 延迟 + 3 个 tab 各 0.6s）再截屏，verdicts 写在屏上。
+          xcrun simctl terminate "$SIM" com.enginecore.plus 2>/dev/null || true
+          xcrun simctl launch "$SIM" com.enginecore.plus -UITapTest
+          sleep 8
+          shot "sim-screenshots/03-taptest.png"
           ls -la sim-screenshots/
 
       - name: Upload screenshots

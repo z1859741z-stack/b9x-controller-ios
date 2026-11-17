@@ -9,6 +9,7 @@ struct ContentView: View {
     @EnvironmentObject private var controller: CoolerController
     @ObservedObject private var appearance = AppearanceSettings.shared
     @StateObject private var tour = TourDriver.shared
+    @StateObject private var tapTest = TapTestDriver.shared
     @State private var tab: Tab = .home
     @State private var appeared = false
     @State private var showStartup = false
@@ -57,7 +58,9 @@ struct ContentView: View {
 
             // 液态玻璃底栏（原版截图实测，440pt @3x）：
             // 栏宽 401pt（91.2%）、左右边距各 19.3pt、栏高约 69pt、全胶囊、
-            // 底边距 20pt；选中胶囊 127×60pt、浅蓝 #D2DFFF，
+            // 底边距 16pt（相对安全区底边；34pt 安全区 + 16pt = 栏底离屏底 50pt，
+            // 照原版全屏实测 49.3pt；fix1 的 ignoresSafeArea 把栏压低约 30pt，fix3 改回）；
+            // 选中胶囊 127×60pt、浅蓝 #D2DFFF，
             // 选中图标/文字蓝 #025FD6，描边图标 20pt、文字 11pt。
             // 图标 20pt 是实测反推：原版房子字形 73×64px、人物 52×55px、
             // 六边形 59×67px，恰好是 22pt 的 20/22（0.91 倍），22pt 偏大 10%。
@@ -87,6 +90,10 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                     .padding(.horizontal, 3.5)
                     .accessibilityIdentifier("tab.\(item.rawValue)")
+                    // 点按测试用：记下每个 tab 按钮的全局 frame，harness 用它做 hitTest。
+                    .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame in
+                        tapTest.recordFrame(tab: item.rawValue, frame: frame)
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -94,7 +101,7 @@ struct ContentView: View {
             .padding(.bottom, 7)
             .tabBarGlass()
             .padding(.horizontal, 19.3)
-            .padding(.bottom, 20)
+            .padding(.bottom, 16)
 
             if showStartup {
                 startupOverlay
@@ -115,12 +122,30 @@ struct ContentView: View {
                 }
                 .allowsHitTesting(false)
             }
+
+            // 点按测试报告（仅 -UITapTest 启动时显示）：hitTest verdicts 写在屏上，
+            // 截图就能看到。平时不显示，真机用户进不来；不拦点按。
+            if TapTestDriver.isEnabled {
+                VStack {
+                    Text(tapTest.report)
+                        .font(.system(size: 13, weight: .semibold))
+                        .multilineTextAlignment(.leading)
+                        .padding(12)
+                        .background(Color.white.opacity(0.94), in: RoundedRectangle(cornerRadius: 12))
+                        .padding(.top, 60)
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+            }
         }
-        // 底栏贴到离屏底 20pt，须伸进底部安全区。
-        .ignoresSafeArea(edges: .bottom)
+        // 底栏定位：不伸进底部安全区，ZStack 底边就是安全区底边，
+        // 栏底 = 安全区底边 + 16pt，离屏底 50pt（照原版实测）。
+        // fix1 加的 ignoresSafeArea(edges: .bottom) 把栏底压到离屏底 20pt，
+        // 比原版低约 30pt、几乎贴到 Home Indicator，fix3 删掉、改回重写版定位。
         .onAppear {
             controller.bootstrap()
             tour.start()
+            tapTest.start()
             if !appeared {
                 appeared = true
                 tab = Tab(rawValue: appearance.defaultTab) ?? .home
@@ -146,6 +171,10 @@ struct ContentView: View {
                 default: tab = .home
                 }
             }
+        }
+        // 点按测试：把当前 tab 同步给 harness，校验 sendActions 后是否真的切过去了。
+        .onChange(of: tab) { _, newValue in
+            tapTest.currentTab = newValue.rawValue
         }
     }
 
@@ -177,6 +206,104 @@ struct ContentView: View {
                     .font(.title2.bold())
                     .foregroundStyle(.primary)
             }
+        }
+    }
+}
+
+// MARK: - 点按穿透测试驱动（CI 专用）
+
+/// 点按穿透测试（仅启动参数含 -UITapTest 时激活，真机用户永远进不来）：
+/// 测的是真实点按的落点。巡游是程序改 tab 状态，不走 hitTest，所以上轮
+/// 没发现中间 tab 点按穿透到底层的问题。
+/// 原理：UIKit 决定一次真实点按落到哪个 view，靠的就是 window.hitTest；
+/// 这里直接对三个 tab 的中心点调 hitTest，再对命中的 UIControl 发
+/// sendActions(.touchUpInside)，确认 tab 真的切过去了。两者合起来等价于
+/// 一次真实点按（落点判定 + 控件动作）。XCTest 在这台 runner 上跑不起来
+///（Xcode 26.6 解析不了 ui-testing 产品类型，fix1 已弃），所以用这个代替。
+final class TapTestDriver: ObservableObject {
+    static let shared = TapTestDriver()
+    static var isEnabled: Bool { CommandLine.arguments.contains("-UITapTest") }
+
+    /// 每个 tab 按钮的全局 frame（ContentView 用 onGeometryChange 喂进来）。
+    @Published var frames: [String: CGRect] = [:]
+    /// 当前 tab（ContentView 用 onChange 喂进来），校验切换用。
+    @Published var currentTab: String = "home"
+    /// verdicts，显示在屏上，截图可见。
+    @Published var report: String = "点按测试：等待布局…"
+
+    private var started = false
+
+    func recordFrame(tab: String, frame: CGRect) {
+        if frames[tab] != frame {
+            frames[tab] = frame
+        }
+    }
+
+    func start() {
+        guard Self.isEnabled, !started else { return }
+        started = true
+        Task { [weak self] in
+            // 等开屏动画消失（0.7s）+ 布局稳定，再测。
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            await self?.execute()
+        }
+    }
+
+    @MainActor
+    private func execute() async {
+        guard let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap({ $0.windows })
+            .first(where: { $0.isKeyWindow })
+        else {
+            report = "点按测试：找不到 keyWindow"
+            return
+        }
+        // 先点自动化、再点我的、最后回首页：每一步都是真切换，
+        // 不是停在原地（首页一开始就是选中态，放在最后）。
+        var lines = ["点按测试（hitTest + 动作）"]
+        for item in [ContentView.Tab.automation, ContentView.Tab.my, ContentView.Tab.home] {
+            let key = item.rawValue
+            guard let frame = frames[key] else {
+                lines.append("\(item.title)：无 frame")
+                report = lines.joined(separator: "\n")
+                continue
+            }
+            let center = CGPoint(x: frame.midX, y: frame.midY)
+            let hit = window.hitTest(center, with: nil)
+            // 沿 superview 链找第一个 UIControl，记下命中 view 的类名。
+            var node: UIView? = hit
+            var control: UIControl? = nil
+            var hitClass = "nil"
+            var depth = 0
+            while let v = node, depth < 24 {
+                if hitClass == "nil" { hitClass = String(describing: type(of: v)) }
+                if let c = v as? UIControl { control = c; break }
+                node = v.superview
+                depth += 1
+            }
+            guard let control else {
+                lines.append("\(item.title)：MISS -> \(hitClass)")
+                report = lines.joined(separator: "\n")
+                continue
+            }
+            // 确认命中的就是这个 tab 的按钮（标识或 frame 对得上），
+            // 不是别的控件（比如连接开关、卡片按钮），免得误触。
+            let cFrame = control.convert(control.bounds, to: nil)
+            let isTabButton = control.accessibilityIdentifier == "tab.\(key)"
+                || (cFrame.contains(center)
+                    && abs(cFrame.width - frame.width) < 20
+                    && abs(cFrame.height - frame.height) < 20)
+            guard isTabButton else {
+                lines.append("\(item.title)：HIT 到其他控件 \(hitClass)")
+                report = lines.joined(separator: "\n")
+                continue
+            }
+            control.sendActions(for: .touchUpInside)
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            let switched = (currentTab == key)
+            lines.append("\(item.title)：HIT \(hitClass) 切换\(switched ? "✓" : "✗")")
+            report = lines.joined(separator: "\n")
         }
     }
 }
