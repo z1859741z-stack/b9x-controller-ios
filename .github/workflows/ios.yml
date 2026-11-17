@@ -101,17 +101,27 @@ jobs:
           # 固定步数巡游：每步单独启动一次（-UITourStep N），不等时间、
           # 只等状态。simctl launch 在冷模拟器上返回晚，计时巡游会在
           # 截图前就跑完（三个 run 的首张截图角标都是 9/9）。
-          # 每次先 terminate，保证是全新启动；启动后等 3 秒（冷启动 +
-          # 0.6 秒设步数 + 弹簧动画）再截屏。
+          # 每次先 terminate，保证是全新启动；启动后等 4 秒（冷启动 +
+          # 0.6 秒设步数 + 弹簧动画）再截屏。冷启动慢时第一张常是黑屏
+          #（只有约 84KB，真界面 500KB+），截到黑屏就等 2 秒重截，最多 6 次。
+          shot() {
+            local out="$1" n=0
+            while [ $n -lt 6 ]; do
+              xcrun simctl io "$SIM" screenshot "$out"
+              if [ "$(stat -f%z "$out")" -gt 200000 ]; then return 0; fi
+              n=$((n + 1))
+              sleep 2
+            done
+          }
           i=0
           for name in home-smart manual free battery target overclock automation my legal back-home; do
             xcrun simctl terminate "$SIM" com.enginecore.plus 2>/dev/null || true
             xcrun simctl launch "$SIM" com.enginecore.plus -UITour -UITourStep $i
-            sleep 3
+            sleep 4
             if [ "$i" = "0" ]; then
-              xcrun simctl io "$SIM" screenshot "sim-screenshots/01-$name.png"
+              shot "sim-screenshots/01-$name.png"
             else
-              xcrun simctl io "$SIM" screenshot "sim-screenshots/02-$name.png"
+              shot "sim-screenshots/02-$name.png"
             fi
             i=$((i + 1))
           done
