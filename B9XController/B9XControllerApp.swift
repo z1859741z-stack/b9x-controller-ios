@@ -46,7 +46,8 @@ struct B9XControllerApp: App {
             .onAppear {
                 // 条款版本变化时重新提示：存的版本 ≠ 当前版本就回到待确认。
                 // 巡游（CI 截图，-UITour）直接进首页，不记确认、不启动真连接流程。
-                legalState = (TourDriver.shared.isTouring || LegalConsentStore.isAccepted) ? .accepted : .needsConsent
+                // 点按测试（CI，-UITapTest）同理：要进首页测 tab 点按。
+                legalState = (TourDriver.shared.isTouring || TapTestDriver.isEnabled || LegalConsentStore.isAccepted) ? .accepted : .needsConsent
             }
         }
     }
