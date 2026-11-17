@@ -86,6 +86,9 @@ struct ContentView: View {
                             tab == item ? Color.tabSelectionFill : Color.clear,
                             in: Capsule()
                         )
+                        // 点按：Color.clear 背景不接点按，整格只有图标/文字那点能点，
+                        // 其余空白点按穿透到底层。contentShape 把整格都变成点按区。
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 3.5)
@@ -267,9 +270,29 @@ final class TapTestDriver: ObservableObject {
             report = "点按测试：找不到 keyWindow"
             return
         }
-        // 先点自动化、再点我的、最后回首页：每一步都是真切换，
-        // 不是停在原地（首页一开始就是选中态，放在最后）。
-        var lines = ["点按测试（hitTest + 动作）"]
+        // 每格测 5 个点（中心/图标/文字/左/右），✓=落到该 tab 按钮上，✗=没落到。
+        // 先点自动化、再点我的、最后回首页：每一步都是真切换。
+        func hitControl(at point: CGPoint) -> (control: UIControl?, topClass: String) {
+            let hit = window.hitTest(point, with: nil)
+            var node: UIView? = hit
+            var topClass = "nil"
+            var depth = 0
+            while let v = node, depth < 24 {
+                if topClass == "nil" { topClass = String(describing: type(of: v)) }
+                if let c = v as? UIControl { return (c, topClass) }
+                node = v.superview
+                depth += 1
+            }
+            return (nil, topClass)
+        }
+        func isTabButton(_ control: UIControl, key: String, frame: CGRect, point: CGPoint) -> Bool {
+            let cFrame = control.convert(control.bounds, to: nil)
+            return control.accessibilityIdentifier == "tab.\(key)"
+                || (cFrame.contains(point)
+                    && abs(cFrame.width - frame.width) < 20
+                    && abs(cFrame.height - frame.height) < 20)
+        }
+        var lines = ["点按测试（hitTest + 动作）", "顺序: 中心/图标/文字/左/右"]
         for item in [ContentView.Tab.automation, ContentView.Tab.my, ContentView.Tab.home] {
             let key = item.rawValue
             guard let frame = frames[key] else {
@@ -277,41 +300,38 @@ final class TapTestDriver: ObservableObject {
                 report = lines.joined(separator: "\n")
                 continue
             }
-            let center = CGPoint(x: frame.midX, y: frame.midY)
-            let hit = window.hitTest(center, with: nil)
-            // 沿 superview 链找第一个 UIControl，记下命中 view 的类名。
-            var node: UIView? = hit
-            var control: UIControl? = nil
-            var hitClass = "nil"
-            var depth = 0
-            while let v = node, depth < 24 {
-                if hitClass == "nil" { hitClass = String(describing: type(of: v)) }
-                if let c = v as? UIControl { control = c; break }
-                node = v.superview
-                depth += 1
+            let points: [CGPoint] = [
+                CGPoint(x: frame.midX, y: frame.midY),          // 中心
+                CGPoint(x: frame.midX, y: frame.minY + 22),     // 图标
+                CGPoint(x: frame.midX, y: frame.maxY - 20),     // 文字
+                CGPoint(x: frame.minX + 8, y: frame.midY),      // 左
+                CGPoint(x: frame.maxX - 8, y: frame.midY),      // 右
+            ]
+            var marks = ""
+            var centerControl: UIControl? = nil
+            var centerTopClass = "nil"
+            for (i, point) in points.enumerated() {
+                let (control, topClass) = hitControl(at: point)
+                let hit = control.map { isTabButton($0, key: key, frame: frame, point: point) } ?? false
+                marks += hit ? "✓" : "✗"
+                if i == 0 {
+                    centerControl = hit ? control : nil
+                    centerTopClass = topClass
+                }
             }
-            guard let control else {
-                lines.append("\(item.title)：MISS -> \(hitClass)")
-                report = lines.joined(separator: "\n")
-                continue
+            if let control = centerControl {
+                control.sendActions(for: .touchUpInside)
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                let switched = (currentTab == key)
+                lines.append("\(item.title)：\(marks) 切换\(switched ? "✓" : "✗")")
+            } else {
+                lines.append("\(item.title)：\(marks) 中心->\(centerTopClass)")
             }
-            // 确认命中的就是这个 tab 的按钮（标识或 frame 对得上），
-            // 不是别的控件（比如连接开关、卡片按钮），免得误触。
-            let cFrame = control.convert(control.bounds, to: nil)
-            let isTabButton = control.accessibilityIdentifier == "tab.\(key)"
-                || (cFrame.contains(center)
-                    && abs(cFrame.width - frame.width) < 20
-                    && abs(cFrame.height - frame.height) < 20)
-            guard isTabButton else {
-                lines.append("\(item.title)：HIT 到其他控件 \(hitClass)")
-                report = lines.joined(separator: "\n")
-                continue
-            }
-            control.sendActions(for: .touchUpInside)
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            let switched = (currentTab == key)
-            lines.append("\(item.title)：HIT \(hitClass) 切换\(switched ? "✓" : "✗")")
             report = lines.joined(separator: "\n")
+        }
+        // 附 frame（核对用）：自动化那格的全局 frame。
+        if let f = frames["automation"] {
+            report += "\n自动化 frame: (\(Int(f.origin.x)),\(Int(f.origin.y)),\(Int(f.size.width))x\(Int(f.size.height)))"
         }
     }
 }
