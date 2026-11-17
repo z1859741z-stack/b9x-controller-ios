@@ -108,28 +108,26 @@ struct HomeView: View {
             Text("连接")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
-            // 与底部导航栏共用 sharedLiquidGlass 的玻璃开关（同一个液态玻璃组件）。
-            GlassToggle(isOn: Binding(
+            Toggle("", isOn: Binding(
                 get: { connected },
-                set: { setConnected($0) }
+                set: { on in
+                    if on {
+                        if controller.demoMode { return }
+                        if controller.ble.hasLastDevice() {
+                            controller.ble.autoConnectLastDevice()
+                        } else {
+                            showConnectSheet = true
+                        }
+                    } else {
+                        if controller.demoMode {
+                            controller.exitDemo()
+                        } else {
+                            controller.disconnect()
+                        }
+                    }
+                }
             ))
-        }
-    }
-
-    private func setConnected(_ on: Bool) {
-        if on {
-            if controller.demoMode { return }
-            if controller.ble.hasLastDevice() {
-                controller.ble.autoConnectLastDevice()
-            } else {
-                showConnectSheet = true
-            }
-        } else {
-            if controller.demoMode {
-                controller.exitDemo()
-            } else {
-                controller.disconnect()
-            }
+            .labelsHidden()
         }
     }
 

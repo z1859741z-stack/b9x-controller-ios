@@ -32,50 +32,20 @@ extension Color {
     })
     /// 次要文字：跟随系统。
     static let b9xTextDim = Color.secondary
-    /// 底栏选中胶囊：原版冰环 X 是中性灰（实测 B−R≈10），不是蓝色；
-    /// 亮色用 systemGray3，暗色用半透明白，照原版明暗走。
-    static let tabSelectionFill = Color(UIColor { trait in
-        trait.userInterfaceStyle == .dark
-            ? UIColor(white: 1, alpha: 0.22)
-            : UIColor.systemGray3
-    })
+    /// 底栏选中胶囊：原版冰环 X 是浅蓝色（原版截图实测 #D2DFFF，
+    /// RGB 210,223,255；上一轮误写成中性灰已纠正）。
+    /// 亮暗都用同一色号（原版截图只有亮色，无暗色参考）。
+    static let tabSelectionFill = Color(hex: 0xD2DFFF)
+    /// 底栏选中图标/文字蓝：原版截图实测 #025FD6（RGB 2,95,214，图标蓝核心像素）。
+    static let tabSelectionBlue = Color(hex: 0x025FD6)
 }
 
-    /// 液态玻璃是否可用：最低部署目标就是 iOS 26，本机上恒为 true；
+/// 液态玻璃是否可用：最低部署目标就是 iOS 26，本机上恒为 true；
 /// 保留这个判断是为了在外观页里按原版文案显示降级提示分支。
 enum GlassSupport {
     static var isLiquidGlassAvailable: Bool {
         if #available(iOS 26.0, *) { return true }
         return false
-    }
-}
-
-/// 玻璃开关：与底部导航栏共用 sharedLiquidGlass（同一个液态玻璃组件）。
-/// 开 = 绿色 tint 玻璃 + 白色圆钮右滑；关 = 无 tint 玻璃 + 圆钮左滑。
-/// 圆钮位置跟随绑定值（真实连接态），不做假乐观。
-struct GlassToggle: View {
-    @Binding var isOn: Bool
-
-    var body: some View {
-        Button {
-            withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.75)) {
-                isOn.toggle()
-            }
-        } label: {
-            ZStack(alignment: isOn ? .trailing : .leading) {
-                Capsule()
-                    .frame(width: 51, height: 31)
-                    .sharedLiquidGlass(in: Capsule(), tint: isOn ? .green.opacity(0.55) : nil)
-                Circle()
-                    .fill(.white)
-                    .frame(width: 27, height: 27)
-                    .padding(2)
-                    .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("连接开关")
-        .accessibilityValue(isOn ? "已开启" : "已关闭")
     }
 }
 
@@ -324,9 +294,9 @@ struct YMarkShape: Shape {
 // ------------------------------------------------------------ 液态玻璃封装
 
 extension View {
-    /// 全 App 唯一的液态玻璃组件（iOS 26 .glassEffect(.regular)，带折射与高光）。
-    /// 底部导航栏与首页“连接”开关（GlassToggle）共用这一份，不走外观设置的
-    /// 磨砂回退，背板透明、不垫白色，保证两者质感完全一致。
+    /// 底部导航栏专用的液态玻璃组件（iOS 26 .glassEffect(.regular)，带折射与高光）。
+    /// 只供底栏用，不走外观设置的磨砂回退，背板透明、不垫白色。
+    /// 首页“连接”开关不用这一份（重写版原样：系统 Toggle 自带液态玻璃外观）。
     func sharedLiquidGlass<S: Shape>(in shape: S, tint: Color? = nil) -> some View {
         if let tint {
             self.glassEffect(.regular.tint(tint), in: shape)
@@ -348,9 +318,10 @@ extension View {
         }
     }
 
-    /// 底栏专用：真正的液态玻璃（原版是圆角矩形、不是全胶囊）。
+    /// 底栏专用：真正的液态玻璃 + 全胶囊（原版截图实测：圆角半径＝栏高一半，
+    /// 上一轮误写成圆角矩形 16 已纠正）。
     @ViewBuilder func tabBarGlass() -> some View {
-        self.sharedLiquidGlass(in: RoundedRectangle(cornerRadius: 16))
+        self.sharedLiquidGlass(in: Capsule())
     }
 
     /// 旧入口（兼容）：按开关决定用液态玻璃还是超薄材质。

@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// 应用根视图：三个底栏 tab（首页 / 自动化 / 我的），选中态为灰色胶囊高亮
-///（对照原版实测：高约 62pt、宽约 253pt、圆角 16、底边距约 21pt）。
+/// 应用根视图：三个底栏 tab（首页 / 自动化 / 我的），选中态为浅蓝胶囊高亮。
+/// 原版截图实测（440pt @3x）：栏宽 401pt（占屏宽 91.2%）、左右边距各 19.3pt、
+/// 栏高约 69pt、全胶囊、选中胶囊 127×61pt #D2DFFF、选中蓝 #025FD6、
+/// 描边空心图标 22pt、文字 11pt、图标与文字间距 7.3pt（字形边沿间距）。
 /// 底栏浮在内容之上，各 tab 的 ScrollView 底部留 100pt，绝不被底栏遮住。
 struct ContentView: View {
     @EnvironmentObject private var controller: CoolerController
@@ -30,14 +32,9 @@ struct ContentView: View {
             }
         }
 
-        /// 选中态用实心图标（对照原版截图：选中图标是实心的）。
-        var iconFilled: String {
-            switch self {
-            case .home: return "house.fill"
-            case .automation: return "person.fill"
-            case .my: return "hexagon.fill"
-            }
-        }
+        /// 选中态也用描边空心图标（原版截图实测：选中房子是空心描边，
+        /// 不是实心填充；上一轮误用 house.fill 已纠正）。选中与未选中
+        /// 只差颜色（选中蓝 #025FD6，未选中灰）。
     }
 
     var body: some View {
@@ -58,9 +55,12 @@ struct ContentView: View {
             // 底栏浮在内容之上（内容从底栏下滑过，玻璃才能透出后面的内容）：
             // 各 tab 自己的 ScrollView 底部已留 100pt，不会被底栏遮住。
 
-            // 液态玻璃底栏（对照原版实测：高约 62pt、宽约 253pt、圆角 16、
-            // 底边距约 21pt、图标 22pt、文字 11pt、选中灰胶囊约 80pt 宽）。
-            // 与“连接”开关共用 sharedLiquidGlass，背板透明。
+            // 液态玻璃底栏（原版截图实测，440pt @3x）：
+            // 栏宽 401pt（91.2%）、左右边距各 19.3pt、栏高约 69pt、全胶囊、
+            // 底边距 20pt；选中胶囊 127×61pt、浅蓝 #D2DFFF，
+            // 选中图标/文字蓝 #025FD6，描边图标 22pt，文字 11pt。
+            // 胶囊在栏内偏上（上留白约 1pt、下留白约 7pt，照原版实测）。
+            // 底栏专用液态玻璃（tabBarGlass），连接开关已改回重写版系统 Toggle，不共用。
             HStack(spacing: 0) {
                 ForEach(Tab.allCases, id: \.self) { item in
                     Button {
@@ -69,25 +69,29 @@ struct ContentView: View {
                         }
                     } label: {
                         VStack(spacing: 4) {
-                            Image(systemName: tab == item ? item.iconFilled : item.icon)
+                            Image(systemName: item.icon)
                                 .font(.system(size: 22, weight: .semibold))
                             Text(item.title)
                                 .font(.system(size: 11, weight: tab == item ? .semibold : .regular))
                         }
-                        .foregroundStyle(tab == item ? .primary : Color.b9xTextDim)
-                        .frame(width: 82)
+                        .foregroundStyle(tab == item ? Color.tabSelectionBlue : Color.b9xTextDim)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
                         .background(
                             tab == item ? Color.tabSelectionFill : Color.clear,
                             in: Capsule()
                         )
-                        .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
+                    .padding(.horizontal, 3.5)
                     .accessibilityIdentifier("tab.\(item.rawValue)")
                 }
             }
-            .padding(.horizontal, 4)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 1)
+            .padding(.bottom, 7)
             .tabBarGlass()
+            .padding(.horizontal, 19.3)
             .padding(.bottom, 20)
 
             if showStartup {
@@ -110,7 +114,7 @@ struct ContentView: View {
                 .allowsHitTesting(false)
             }
         }
-        // 底栏要贴到离屏底 20pt（原版底边距约 21pt），须伸进底部安全区。
+        // 底栏贴到离屏底 20pt，须伸进底部安全区。
         .ignoresSafeArea(edges: .bottom)
         .onAppear {
             controller.bootstrap()
