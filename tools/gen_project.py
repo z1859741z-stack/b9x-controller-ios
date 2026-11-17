@@ -98,7 +98,7 @@ def main():
                 "group-Protocol", "group-Models", "group-BLE",
                 "group-Controller", "group-UI", "group-Intents",
                 "group-Firmware",
-                "uitest-target", "uitest-sources-phase",
+                "uitest-target", "uitest-sources-phase", "uitest-frameworks-phase",
                 "uitest-configlist", "uitest-config-debug", "uitest-config-release",
                 "uitest-dependency", "uitest-proxy", "group-uitests"]:
         ids[key] = uid(key)
@@ -198,6 +198,8 @@ def main():
         )
         add(ids["uitest-sources-phase"], "Sources",
             "{\n\t\t\tisa = PBXSourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n%s\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % uitest_src_files)
+        add(ids["uitest-frameworks-phase"], "Frameworks",
+            "{\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}")
 
     # ---- PBXGroup ----
     for gname, gfiles in groups.items():
@@ -251,8 +253,8 @@ def main():
         add(ids["uitest-dependency"], "PBXTargetDependency",
             "{\n\t\t\tisa = PBXTargetDependency;\n\t\t\ttarget = %s /* B9XController */;\n\t\t\ttargetProxy = %s /* PBXContainerItemProxy */;\n\t\t}" % (ids["target"], ids["uitest-proxy"]))
         add(ids["uitest-target"], "B9XControllerUITests",
-            "{\n\t\t\tisa = PBXNativeTarget;\n\t\t\tbuildConfigurationList = %s /* Build configuration list for PBXNativeTarget \"B9XControllerUITests\" */;\n\t\t\tbuildPhases = (\n\t\t\t\t%s /* Sources */,\n\t\t\t);\n\t\t\tbuildRules = (\n\t\t\t);\n\t\t\tdependencies = (\n\t\t\t\t%s /* PBXTargetDependency */,\n\t\t\t);\n\t\t\tname = B9XControllerUITests;\n\t\t\tproductName = B9XControllerUITests;\n\t\t\tproductReference = %s /* B9XControllerUITests.xctest */;\n\t\t\tproductType = \"com.apple.product-type.ui-testing\";\n\t\t}" % (
-                ids["uitest-configlist"], ids["uitest-sources-phase"],
+            "{\n\t\t\tisa = PBXNativeTarget;\n\t\t\tbuildConfigurationList = %s /* Build configuration list for PBXNativeTarget \"B9XControllerUITests\" */;\n\t\t\tbuildPhases = (\n\t\t\t\t%s /* Sources */,\n\t\t\t\t%s /* Frameworks */,\n\t\t\t);\n\t\t\tbuildRules = (\n\t\t\t);\n\t\t\tdependencies = (\n\t\t\t\t%s /* PBXTargetDependency */,\n\t\t\t);\n\t\t\tname = B9XControllerUITests;\n\t\t\tproductName = B9XControllerUITests;\n\t\t\tproductReference = %s /* B9XControllerUITests.xctest */;\n\t\t\tproductType = \"com.apple.product-type.ui-testing\";\n\t\t}" % (
+                ids["uitest-configlist"], ids["uitest-sources-phase"], ids["uitest-frameworks-phase"],
                 ids["uitest-dependency"], ids["fileref:uitest-product"]))
 
     # ---- XCBuildConfiguration ----
@@ -375,6 +377,7 @@ def main():
             "PRODUCT_BUNDLE_IDENTIFIER": "com.enginecore.plus.uitests",
             "PRODUCT_NAME": '"$(TARGET_NAME)"',
             "SDKROOT": "iphoneos",
+            "SUPPORTED_PLATFORMS": '"iphonesimulator iphoneos"',
             "SWIFT_VERSION": "5.0",
             "TARGETED_DEVICE_FAMILY": "1",
             "TEST_TARGET_NAME": "B9XController",

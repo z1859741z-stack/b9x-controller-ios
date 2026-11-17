@@ -286,6 +286,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.enginecore.plus.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = B9XController;
@@ -374,6 +375,7 @@
 			buildConfigurationList = 07A5CE657AA25F9DAA1AF14B /* Build configuration list for PBXNativeTarget "B9XControllerUITests" */;
 			buildPhases = (
 				26E000222ACC551598645E5C /* Sources */,
+				692F19D48FAC5035985C33B8 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -400,6 +402,13 @@
 			lastKnownFileType = sourcecode.swift;
 			path = ConnectView.swift;
 			sourceTree = "<group>";
+		};
+		692F19D48FAC5035985C33B8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		69EC10E7357A5486844F670F /* CoolerState.swift in Sources */ = {
 			isa = PBXBuildFile;
@@ -544,6 +553,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.enginecore.plus.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
