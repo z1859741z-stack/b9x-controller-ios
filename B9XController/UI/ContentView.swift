@@ -92,6 +92,9 @@ struct ContentView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 3.5)
+                    // 再补一层：plain 样式下，label 的 contentShape 有可能
+                    // 传不到按钮层。按钮本身也框一个矩形点按区，双保险。
+                    .contentShape(Rectangle())
                     .accessibilityIdentifier("tab.\(item.rawValue)")
                     // 点按测试用：记下每个 tab 按钮的全局 frame，harness 用它做 hitTest。
                     .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame in
