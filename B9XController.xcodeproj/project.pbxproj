@@ -5,12 +5,24 @@
 	};
 	objectVersion = 77;
 	objects = {
+		018B000895CE5653A948BE83 /* ZipArchive.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ZipArchive.swift;
+			sourceTree = "<group>";
+		};
 		08B39AA25A3F5936BFA6BC55 /* AppIntents.framework */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = wrapper.framework;
 			name = AppIntents.framework;
 			path = System/Library/Frameworks/AppIntents.framework;
 			sourceTree = SDKROOT;
+		};
+		0AE603BFD95C54FFAE2A16C7 /* 8.4.7.bin */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = file;
+			path = 8.4.7.bin;
+			sourceTree = "<group>";
 		};
 		0BD533CA99655E889E1EEB91 /* AutomationView.swift */ = {
 			isa = PBXFileReference;
@@ -52,11 +64,19 @@
 			isa = PBXBuildFile;
 			fileRef = 0BD533CA99655E889E1EEB91 /* AutomationView.swift */;
 		};
+		16C1A3E8CF645DBFA92909D2 /* LCDView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = F014F84C30665128958888AD /* LCDView.swift */;
+		};
 		1AEE3D0AF3FA555998BA3839 /* Info.plist */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = text.plist.xml;
 			path = Info.plist;
 			sourceTree = "<group>";
+		};
+		1BD89F0F83EF5AC8AB666FC5 /* AboutViews.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 8107D20DAAEF544C9DBFA6AF /* AboutViews.swift */;
 		};
 		1F3731B001FA5662B4CF0A41 /* Products */ = {
 			isa = PBXGroup;
@@ -66,12 +86,34 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		2497D6638A295029BF3A7612 /* SessionMachine.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SessionMachine.swift;
+			sourceTree = "<group>";
+		};
+		263CD78DF6A9587C859F3786 /* HomeView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = CAD535057C405E7A857D3E67 /* HomeView.swift */;
+		};
 		26F45F0CD4025C6CAEBAF039 /* BLE */ = {
 			isa = PBXGroup;
 			children = (
 				ADCD2AB63AA555F7BFEC1EE2 /* BLEManager.swift */
 			);
 			path = BLE;
+			sourceTree = "<group>";
+		};
+		2961B7AEE89B5A5B94EF2DD3 /* LegalText.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = LegalText.swift;
+			sourceTree = "<group>";
+		};
+		29634664BE4D553390F56E2D /* CurveViews.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = CurveViews.swift;
 			sourceTree = "<group>";
 		};
 		2C689AD135515A2BAF443BC3 /* CoolerState.swift */ = {
@@ -107,6 +149,12 @@
 				475516DEEF8452ADBB62F226 /* B9XController */,
 			);
 		};
+		35CA2339675C539681650F6D /* CubeLightingView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = CubeLightingView.swift;
+			sourceTree = "<group>";
+		};
 		35FD6919046454CC87E80DC6 /* CoolerController.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
@@ -119,6 +167,22 @@
 			includeInIndex = 0;
 			path = B9XController.app;
 			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		3762B39749E0505CA260CD84 /* PetViews.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = BE7B85DAF0D659EFAA16CA5E /* PetViews.swift */;
+		};
+		37750C79BA055D49AEDFE955 /* AppearanceView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = AppearanceView.swift;
+			sourceTree = "<group>";
+		};
+		3A6EE2B0D80D5E168DB46668 /* AppearanceSettings.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = AppearanceSettings.swift;
+			sourceTree = "<group>";
 		};
 		3CB245F5B3195BEEB06D7343 /* ContentView.swift */ = {
 			isa = PBXFileReference;
@@ -136,6 +200,10 @@
 			path = B9XIntents.swift;
 			sourceTree = "<group>";
 		};
+		45D40E2B3F4D5B4CBBAA4ED9 /* SettingsView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = D023E1C929475F29AA6CC114 /* SettingsView.swift */;
+		};
 		468D432389D95DD48CBEA137 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -143,18 +211,45 @@
 				B57334BF761B5C07B8F70163 /* B9XControllerApp.swift in Sources */,
 				BF7228312BD453698D49265C /* BLEManager.swift in Sources */,
 				7EE7A55DFA425F82957C813A /* CoolerController.swift in Sources */,
+				F563B54CB6905522B56232A7 /* SessionMachine.swift in Sources */,
 				9B04E29DB6B258F48F813D6E /* B9XIntents.swift in Sources */,
+				A4D63B5EC22D5FCD8BFCD7E2 /* AppearanceSettings.swift in Sources */,
 				69EC10E7357A5486844F670F /* CoolerState.swift in Sources */,
+				82AE2D2AFF8A578EB05C5BF4 /* DeviceChannel.swift in Sources */,
+				E414D122E9E35D95A86A6585 /* FirmwareImage.swift in Sources */,
+				F354AFC24AFD554992B76881 /* LegalText.swift in Sources */,
+				EE8B5EF33F2F5DA491135036 /* PetPackage.swift in Sources */,
+				E9268BB5D66E59789F3C6B1F /* ZipArchive.swift in Sources */,
 				C0EBD532C0F155989F2167D7 /* B9XProtocol.swift in Sources */,
+				81CBF342854D50D5A66F3076 /* BlackSharkCodec.swift in Sources */,
+				6C6159D711655464A5C9A99B /* RedMagicCodec.swift in Sources */,
+				752ECFDF63B150CDA4C3BEBB /* Secrets.swift in Sources */,
+				FD42C27FA07E5EE8951F03D3 /* TelinkOTA.swift in Sources */,
+				1BD89F0F83EF5AC8AB666FC5 /* AboutViews.swift in Sources */,
+				FD7C22786E1250B3B4E5FBD8 /* AppearanceView.swift in Sources */,
 				14A61030C85C57A9818A9698 /* AutomationView.swift in Sources */,
 				EEF3811084245339ADC7BC8D /* ConnectView.swift in Sources */,
 				BE3D2127AF875E1F8C4FA884 /* ContentView.swift in Sources */,
+				48140EF3F4A759B5A8B8FB19 /* CubeLightingView.swift in Sources */,
+				798BA389D26C5BF8B5975060 /* CurveViews.swift in Sources */,
 				D20FF93CC5815B768FA0C0B3 /* DeviceView.swift in Sources */,
+				E1C4666C11D65611B2055BE1 /* FirmwareView.swift in Sources */,
 				A72399D75E6859ADA49F65ED /* GlassViews.swift in Sources */,
+				263CD78DF6A9587C859F3786 /* HomeView.swift in Sources */,
+				16C1A3E8CF645DBFA92909D2 /* LCDView.swift in Sources */,
 				88681F75EBE154848FE67BAD /* LEDView.swift in Sources */,
-				FC417566198D5948BF052B1E /* MoreView.swift in Sources */
+				FC417566198D5948BF052B1E /* MoreView.swift in Sources */,
+				4D9438EA3B40558ABF477C20 /* MusicView.swift in Sources */,
+				3762B39749E0505CA260CD84 /* PetViews.swift in Sources */,
+				45D40E2B3F4D5B4CBBAA4ED9 /* SettingsView.swift in Sources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
+		};
+		46D3DEF2112258728871B669 /* TelinkOTA.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = TelinkOTA.swift;
+			sourceTree = "<group>";
 		};
 		475516DEEF8452ADBB62F226 /* B9XController */ = {
 			isa = PBXNativeTarget;
@@ -172,6 +267,14 @@
 			productName = B9XController;
 			productReference = 3685A1F057BA5127B0896547 /* B9XController.app */;
 			productType = "com.apple.product-type.application";
+		};
+		48140EF3F4A759B5A8B8FB19 /* CubeLightingView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 35CA2339675C539681650F6D /* CubeLightingView.swift */;
+		};
+		4D9438EA3B40558ABF477C20 /* MusicView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 80CF8136A4EF53918EB398E2 /* MusicView.swift */;
 		};
 		4DA463079CB459668C1E940E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -194,20 +297,46 @@
 		519B558A26F85D45AB2FAAC4 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				8107D20DAAEF544C9DBFA6AF /* AboutViews.swift */,
+				37750C79BA055D49AEDFE955 /* AppearanceView.swift */,
 				0BD533CA99655E889E1EEB91 /* AutomationView.swift */,
 				6875300C046E565AAF4A2067 /* ConnectView.swift */,
 				3CB245F5B3195BEEB06D7343 /* ContentView.swift */,
+				35CA2339675C539681650F6D /* CubeLightingView.swift */,
+				29634664BE4D553390F56E2D /* CurveViews.swift */,
 				6EC57CAADA2C53D9B32D030F /* DeviceView.swift */,
+				678360371EF852A080715399 /* FirmwareView.swift */,
 				787B797A70885794A3311655 /* GlassViews.swift */,
+				CAD535057C405E7A857D3E67 /* HomeView.swift */,
+				F014F84C30665128958888AD /* LCDView.swift */,
 				F1DD99D0035053B8B28CC53F /* LEDView.swift */,
-				1416317DF3CC513697C03950 /* MoreView.swift */
+				1416317DF3CC513697C03950 /* MoreView.swift */,
+				80CF8136A4EF53918EB398E2 /* MusicView.swift */,
+				BE7B85DAF0D659EFAA16CA5E /* PetViews.swift */,
+				D023E1C929475F29AA6CC114 /* SettingsView.swift */
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		5ABFF37ECCCF506593BA8C05 /* 8.5.2R5.bin in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = E27C9B26A23B58FA8FDF8CDE /* 8.5.2R5.bin */;
+		};
+		637ECC94BDE552CC8CCB24EC /* Secrets.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = Secrets.swift;
 			sourceTree = "<group>";
 		};
 		667054C204C650E98FD83817 /* Assets.xcassets in Resources */ = {
 			isa = PBXBuildFile;
 			fileRef = BCE561B9FC085473B53BFAD4 /* Assets.xcassets */;
+		};
+		678360371EF852A080715399 /* FirmwareView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = FirmwareView.swift;
+			sourceTree = "<group>";
 		};
 		6875300C046E565AAF4A2067 /* ConnectView.swift */ = {
 			isa = PBXFileReference;
@@ -219,10 +348,40 @@
 			isa = PBXBuildFile;
 			fileRef = 2C689AD135515A2BAF443BC3 /* CoolerState.swift */;
 		};
+		6A0F910E12C5511B8C2227FF /* Firmware */ = {
+			isa = PBXGroup;
+			children = (
+				0AE603BFD95C54FFAE2A16C7 /* 8.4.7.bin */,
+				E27C9B26A23B58FA8FDF8CDE /* 8.5.2R5.bin */,
+				6DE06929BECA502197E14680 /* 8.5.3R5.bin */
+			);
+			path = Firmware;
+			sourceTree = "<group>";
+		};
+		6C6159D711655464A5C9A99B /* RedMagicCodec.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 7547B89B00C75E62B19A3305 /* RedMagicCodec.swift */;
+		};
+		6DE06929BECA502197E14680 /* 8.5.3R5.bin */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = file;
+			path = 8.5.3R5.bin;
+			sourceTree = "<group>";
+		};
 		6EC57CAADA2C53D9B32D030F /* DeviceView.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = DeviceView.swift;
+			sourceTree = "<group>";
+		};
+		752ECFDF63B150CDA4C3BEBB /* Secrets.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 637ECC94BDE552CC8CCB24EC /* Secrets.swift */;
+		};
+		7547B89B00C75E62B19A3305 /* RedMagicCodec.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = RedMagicCodec.swift;
 			sourceTree = "<group>";
 		};
 		787B797A70885794A3311655 /* GlassViews.swift */ = {
@@ -230,6 +389,10 @@
 			lastKnownFileType = sourcecode.swift;
 			path = GlassViews.swift;
 			sourceTree = "<group>";
+		};
+		798BA389D26C5BF8B5975060 /* CurveViews.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 29634664BE4D553390F56E2D /* CurveViews.swift */;
 		};
 		79D74332DB0C5DAA80DFDC67 /* B9XProtocol.swift */ = {
 			isa = PBXFileReference;
@@ -258,6 +421,7 @@
 				D1DFBA4DB5DC515999D527E1 /* Controller */,
 				519B558A26F85D45AB2FAAC4 /* UI */,
 				A52BB5A9F3B5501198C49937 /* Intents */,
+				6A0F910E12C5511B8C2227FF /* Firmware */,
 				BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */,
 				1AEE3D0AF3FA555998BA3839 /* Info.plist */,
 				BCE561B9FC085473B53BFAD4 /* Assets.xcassets */,
@@ -265,6 +429,26 @@
 			);
 			path = B9XController;
 			sourceTree = "<group>";
+		};
+		80CF8136A4EF53918EB398E2 /* MusicView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = MusicView.swift;
+			sourceTree = "<group>";
+		};
+		8107D20DAAEF544C9DBFA6AF /* AboutViews.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = AboutViews.swift;
+			sourceTree = "<group>";
+		};
+		81CBF342854D50D5A66F3076 /* BlackSharkCodec.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = B328747A76315AEC8BDEC41F /* BlackSharkCodec.swift */;
+		};
+		82AE2D2AFF8A578EB05C5BF4 /* DeviceChannel.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = E9FDDA593CAA5978AA3016BF /* DeviceChannel.swift */;
 		};
 		8702C1D2CE1C504DA5843E6F /* CoreBluetooth.framework in Frameworks */ = {
 			isa = PBXBuildFile;
@@ -372,6 +556,16 @@
 			isa = PBXBuildFile;
 			fileRef = 4510D5E12FCB5D419071BEE5 /* B9XIntents.swift */;
 		};
+		A0740B705B225E2883975700 /* PetPackage.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PetPackage.swift;
+			sourceTree = "<group>";
+		};
+		A4D63B5EC22D5FCD8BFCD7E2 /* AppearanceSettings.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 3A6EE2B0D80D5E168DB46668 /* AppearanceSettings.swift */;
+		};
 		A52BB5A9F3B5501198C49937 /* Intents */ = {
 			isa = PBXGroup;
 			children = (
@@ -396,6 +590,12 @@
 			path = BLEManager.swift;
 			sourceTree = "<group>";
 		};
+		B328747A76315AEC8BDEC41F /* BlackSharkCodec.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = BlackSharkCodec.swift;
+			sourceTree = "<group>";
+		};
 		B57334BF761B5C07B8F70163 /* B9XControllerApp.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = BB13BEB50E6F5D58BDB27BC5 /* B9XControllerApp.swift */;
@@ -416,10 +616,20 @@
 			isa = PBXBuildFile;
 			fileRef = 3CB245F5B3195BEEB06D7343 /* ContentView.swift */;
 		};
+		BE7B85DAF0D659EFAA16CA5E /* PetViews.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PetViews.swift;
+			sourceTree = "<group>";
+		};
 		BF2C729EF44D590FBDC93C50 /* Protocol */ = {
 			isa = PBXGroup;
 			children = (
-				79D74332DB0C5DAA80DFDC67 /* B9XProtocol.swift */
+				79D74332DB0C5DAA80DFDC67 /* B9XProtocol.swift */,
+				B328747A76315AEC8BDEC41F /* BlackSharkCodec.swift */,
+				7547B89B00C75E62B19A3305 /* RedMagicCodec.swift */,
+				637ECC94BDE552CC8CCB24EC /* Secrets.swift */,
+				46D3DEF2112258728871B669 /* TelinkOTA.swift */
 			);
 			path = Protocol;
 			sourceTree = "<group>";
@@ -427,6 +637,10 @@
 		BF7228312BD453698D49265C /* BLEManager.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = ADCD2AB63AA555F7BFEC1EE2 /* BLEManager.swift */;
+		};
+		C03E2A42445456B0AB37D086 /* 8.5.3R5.bin in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = 6DE06929BECA502197E14680 /* 8.5.3R5.bin */;
 		};
 		C0EBD532C0F155989F2167D7 /* B9XProtocol.swift in Sources */ = {
 			isa = PBXBuildFile;
@@ -498,6 +712,9 @@
 			files = (
 				667054C204C650E98FD83817 /* Assets.xcassets in Resources */,
 				450846EF006E5508BCB24097 /* LaunchScreen.storyboard in Resources */,
+				E73A5CCDD6DA5183A546CF9B /* 8.4.7.bin in Resources */,
+				5ABFF37ECCCF506593BA8C05 /* 8.5.2R5.bin in Resources */,
+				C03E2A42445456B0AB37D086 /* 8.5.3R5.bin in Resources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -510,18 +727,37 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		CAD535057C405E7A857D3E67 /* HomeView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = HomeView.swift;
+			sourceTree = "<group>";
+		};
 		CC73F77CE62358B5B1F4170F /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				2C689AD135515A2BAF443BC3 /* CoolerState.swift */
+				3A6EE2B0D80D5E168DB46668 /* AppearanceSettings.swift */,
+				2C689AD135515A2BAF443BC3 /* CoolerState.swift */,
+				E9FDDA593CAA5978AA3016BF /* DeviceChannel.swift */,
+				D3372440E8775444908A7487 /* FirmwareImage.swift */,
+				2961B7AEE89B5A5B94EF2DD3 /* LegalText.swift */,
+				A0740B705B225E2883975700 /* PetPackage.swift */,
+				018B000895CE5653A948BE83 /* ZipArchive.swift */
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		D023E1C929475F29AA6CC114 /* SettingsView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SettingsView.swift;
 			sourceTree = "<group>";
 		};
 		D1DFBA4DB5DC515999D527E1 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
-				35FD6919046454CC87E80DC6 /* CoolerController.swift */
+				35FD6919046454CC87E80DC6 /* CoolerController.swift */,
+				2497D6638A295029BF3A7612 /* SessionMachine.swift */
 			);
 			path = Controller;
 			sourceTree = "<group>";
@@ -530,9 +766,53 @@
 			isa = PBXBuildFile;
 			fileRef = 6EC57CAADA2C53D9B32D030F /* DeviceView.swift */;
 		};
+		D3372440E8775444908A7487 /* FirmwareImage.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = FirmwareImage.swift;
+			sourceTree = "<group>";
+		};
+		E1C4666C11D65611B2055BE1 /* FirmwareView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 678360371EF852A080715399 /* FirmwareView.swift */;
+		};
+		E27C9B26A23B58FA8FDF8CDE /* 8.5.2R5.bin */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = file;
+			path = 8.5.2R5.bin;
+			sourceTree = "<group>";
+		};
+		E414D122E9E35D95A86A6585 /* FirmwareImage.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = D3372440E8775444908A7487 /* FirmwareImage.swift */;
+		};
+		E73A5CCDD6DA5183A546CF9B /* 8.4.7.bin in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = 0AE603BFD95C54FFAE2A16C7 /* 8.4.7.bin */;
+		};
+		E9268BB5D66E59789F3C6B1F /* ZipArchive.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 018B000895CE5653A948BE83 /* ZipArchive.swift */;
+		};
+		E9FDDA593CAA5978AA3016BF /* DeviceChannel.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DeviceChannel.swift;
+			sourceTree = "<group>";
+		};
+		EE8B5EF33F2F5DA491135036 /* PetPackage.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A0740B705B225E2883975700 /* PetPackage.swift */;
+		};
 		EEF3811084245339ADC7BC8D /* ConnectView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 6875300C046E565AAF4A2067 /* ConnectView.swift */;
+		};
+		F014F84C30665128958888AD /* LCDView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = LCDView.swift;
+			sourceTree = "<group>";
 		};
 		F1DD99D0035053B8B28CC53F /* LEDView.swift */ = {
 			isa = PBXFileReference;
@@ -540,9 +820,25 @@
 			path = LEDView.swift;
 			sourceTree = "<group>";
 		};
+		F354AFC24AFD554992B76881 /* LegalText.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 2961B7AEE89B5A5B94EF2DD3 /* LegalText.swift */;
+		};
+		F563B54CB6905522B56232A7 /* SessionMachine.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 2497D6638A295029BF3A7612 /* SessionMachine.swift */;
+		};
 		FC417566198D5948BF052B1E /* MoreView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 1416317DF3CC513697C03950 /* MoreView.swift */;
+		};
+		FD42C27FA07E5EE8951F03D3 /* TelinkOTA.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 46D3DEF2112258728871B669 /* TelinkOTA.swift */;
+		};
+		FD7C22786E1250B3B4E5FBD8 /* AppearanceView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 37750C79BA055D49AEDFE955 /* AppearanceView.swift */;
 		};
 	};
 	rootObject = 35BA99039BF954048E88685C /* Project object */;

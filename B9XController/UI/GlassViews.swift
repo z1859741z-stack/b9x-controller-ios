@@ -34,8 +34,19 @@ extension Color {
     static let b9xTextDim = Color.secondary
 }
 
-/// 圆角卡片（对照片里的卡片样式），背景跟随系统。
+/// 液态玻璃是否可用：最低部署目标就是 iOS 26，本机上恒为 true；
+/// 保留这个判断是为了在外观页里按原版文案显示降级提示分支。
+enum GlassSupport {
+    static var isLiquidGlassAvailable: Bool {
+        if #available(iOS 26.0, *) { return true }
+        return false
+    }
+}
+
+/// 圆角卡片（对照原版卡片样式），材质跟随外观设置：
+/// 液态玻璃 → .glassEffect；磨砂模糊 → .ultraThinMaterial；普通 → 纯色 + 透明度滑杆。
 struct GlassCard<Content: View>: View {
+    @ObservedObject private var appearance = AppearanceSettings.shared
     let content: Content
 
     init(@ViewBuilder content: () -> Content) {
@@ -43,14 +54,36 @@ struct GlassCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .padding(16)
-            .background(Color.b9xCard)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
-            )
+        Group {
+            switch appearance.effectiveMaterial {
+            case .glass:
+                content
+                    .padding(16)
+                    .glassEffect(
+                        .regular.tint(Color(.secondarySystemBackground).opacity(1 - appearance.cardOpacity)),
+                        in: RoundedRectangle(cornerRadius: 20)
+                    )
+            case .frosted:
+                content
+                    .padding(16)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                    .background(
+                        Color.b9xCard.opacity(appearance.cardOpacity * 0.35),
+                        in: RoundedRectangle(cornerRadius: 20)
+                    )
+            case .plain:
+                content
+                    .padding(16)
+                    .background(
+                        Color.b9xCard.opacity(appearance.cardOpacity),
+                        in: RoundedRectangle(cornerRadius: 20)
+                    )
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+        )
     }
 }
 
@@ -250,8 +283,28 @@ struct YMarkShape: Shape {
     }
 }
 
-/// 按开关决定用液态玻璃还是超薄材质（外观设置里的玻璃开关）。
+// ------------------------------------------------------------ 液态玻璃封装
+
 extension View {
+    /// 按外观设置给任意形状套材质（卡片用圆角矩形，底栏用胶囊）。
+    @ViewBuilder func appearanceMaterial<S: Shape>(_ shape: S) -> some View {
+        let appearance = AppearanceSettings.shared
+        switch appearance.effectiveMaterial {
+        case .glass:
+            self.glassEffect(.regular, in: shape)
+        case .frosted:
+            self.background(.ultraThinMaterial, in: shape)
+        case .plain:
+            self.background(Color.b9xCard.opacity(appearance.cardOpacity), in: shape)
+        }
+    }
+
+    /// 底栏专用：按外观设置套胶囊材质。
+    @ViewBuilder func tabBarGlass() -> some View {
+        self.appearanceMaterial(Capsule())
+    }
+
+    /// 旧入口（兼容）：按开关决定用液态玻璃还是超薄材质。
     @ViewBuilder func conditionalGlass(_ enabled: Bool) -> some View {
         if enabled {
             self.glassEffect(.regular, in: .capsule)

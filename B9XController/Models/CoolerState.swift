@@ -2,6 +2,11 @@ import Foundation
 
 /// 设备的实时状态快照（值类型）。
 struct CoolerState {
+    /// 连接阶段（与 CoolerController.phase 同步；UI 可读 state.phase）。
+    var phase: ConnectionPhase = .idle
+    /// 设备通道（与 CoolerController.channel 同步）。
+    var channel: DeviceChannel = .flydigi
+
     var connected: Bool = false
     var deviceName: String = "Flydigi B9X"
     var temperature: Int = 0
@@ -196,6 +201,8 @@ struct CoolerState {
         s.ledColors = [0xFF6EE7FF, 0xFF5B8CFF, 0xFFA78BFA, 0xFFFF5D8F]
         s.ledPeriod = 40
         s.ledLight = 80
+        s.phase = .ready
+        s.channel = .flydigi
         return s
     }
 }

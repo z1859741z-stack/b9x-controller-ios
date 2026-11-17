@@ -1,4 +1,5 @@
 import Combine
+import CryptoKit
 import Foundation
 import UIKit
 import UserNotifications
@@ -30,6 +31,13 @@ struct B9XSettingsExport: Codable {
     var hotProtectionEnabled: Bool = true
 }
 
+/// 更新信息（checkForUpdate 返回）。
+struct UpdateInfo {
+    let version: String
+    let notes: String
+    let url: URL
+}
+
 /// 业务控制器：把 BLE 字节流翻译成 UI 可用的状态与命令。
 /// 行为以 `V2-SPEC.md §3–§5` 为准。
 @MainActor
@@ -41,6 +49,23 @@ final class CoolerController: ObservableObject {
     @Published private(set) var devices: [DiscoveredDevice] = []
     @Published var error: String?
     @Published private(set) var phoneThermal = PhoneThermalState.nominal
+
+    /// 连接阶段（BLE 回调映射；READY 只由 onReadyState 置位）。
+    @Published private(set) var phase: ConnectionPhase = .idle
+    /// 设备通道（由扫描到的广播名 / 服务发现确认）。
+    @Published private(set) var channel: DeviceChannel = .flydigi
+
+    /// 固件刷写阶段 / 进度 / 包内镜像。
+    @Published private(set) var firmwareStage: FirmwareStage = .idle
+    @Published private(set) var firmwareProgress: Double = 0
+    @Published private(set) var firmwareImages: [FirmwareImage] = []
+    /// 红魔制冷曲线（尽力而为，帧结构未验证）。
+    @Published private(set) var redMagicCurveLevels: [Int] = B9XProtocol.defaultCurveLevels
+    /// 红魔音频律动 pattern 索引（尽力而为，帧结构未验证）。
+    @Published private(set) var redMagicAudioPatternIndex: Int = 0
+
+    /// 刷固件确认短语（UI 原样展示，用户照打）。
+    static let firmwareConsentPhrase = "刷固件导致的问题由我自行承担"
 
     /// 演示模式：没有硬件时预览完整界面。
     @Published var demoMode = false
@@ -75,7 +100,7 @@ final class CoolerController: ObservableObject {
     let ble = BLEManager()
 
     private var cancellables = Set<AnyCancellable>()
-    private var pollTimer: Timer?
+    private var thermalLoopTimer: Timer?
     private var thermalTimer: Timer?
     private var bootstrapped = false
     private var didInitAfterConnect = false
@@ -116,6 +141,16 @@ final class CoolerController: ObservableObject {
     /// 软件温控环路：上次下发的档位（去重用）与 Freeze 退出后待补的档位。
     private var thermalLastLevel: Int?
     private var pendingThermalLevel: Int?
+
+    /// 会话状态机（DEEP-DIVE §3）：事件由控制器喂入，效果由控制器执行。
+    private var machine = SessionMachine()
+    /// 固件刷写取消标志（刷写循环每批检查）。
+    private var firmwareFlashCancelled = false
+    /// 刷写后等待设备重启重连（该期间断连不记“连接已断开”）。
+    private var firmwareReconnectExpected = false
+    /// 正在刷的镜像（刷后核对版本用）。
+    private var flashingImage: FirmwareImage?
+    private var firmwareWaitWorkItem: DispatchWorkItem?
 
     private enum DefaultsKey {
         static let lastRunMode = "b9x.lastRunMode"
@@ -162,6 +197,36 @@ final class CoolerController: ObservableObject {
                 self?.log(message)
             }
         }
+        ble.onPhase = { [weak self] phase in
+            Task { @MainActor [weak self] in
+                self?.setPhase(phase)
+            }
+        }
+        ble.onChannel = { [weak self] channel in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.channel = channel
+                self.state.channel = channel
+            }
+        }
+        ble.onFreezeOffRequested = { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                // BLE 层有请求被 Freeze 门控挡住：退 Freeze 后排空自动恢复。
+                if self.state.freezeMode {
+                    self.setFreezeEnabled(false)
+                } else {
+                    self.ble.notifyFreezeOff()
+                }
+            }
+        }
+        ble.onWriteAck = { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.applySessionEffects(self.machine.handle(.commandAcknowledged(generation: self.ble.generation), now: Date()))
+            }
+        }
+        firmwareImages = FirmwareImage.bundledImages()
         thermalTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
@@ -195,7 +260,49 @@ final class CoolerController: ObservableObject {
     private func updateBatteryStatus() {
         let device = UIDevice.current
         batteryLevel = device.batteryLevel >= 0 ? Int(device.batteryLevel * 100) : -1
-        batteryCharging = device.batteryState == .charging || device.batteryState == .full
+        let charging = device.batteryState == .charging || device.batteryState == .full
+        if charging != batteryCharging {
+            batteryCharging = charging
+            applySessionEffects(machine.handle(charging ? .chargingStarted : .chargingEnded, now: Date()))
+        } else {
+            batteryCharging = charging
+        }
+    }
+
+    /// 连接阶段同步（controller.phase 与 state.phase 保持一致）。
+    /// READY 期间 BLE 层不再上报阶段，.ready 只由 onReadyState 置位，
+    /// 避免迟到的 .subscribing 覆盖它。
+    private func setPhase(_ newPhase: ConnectionPhase) {
+        if phase == .ready, newPhase == .subscribing { return }
+        phase = newPhase
+        state.phase = newPhase
+    }
+
+    /// 执行状态机的效果（发命令 / 启定时器 / 读回 / 报错 / 取消 / 恢复）。
+    /// 状态机本身不碰 BLE，只做决策。
+    private func applySessionEffects(_ effects: [SessionEffect]) {
+        for effect in effects {
+            switch effect {
+            case .sendCommand(let data, let key):
+                ble.enqueue(data, key: key)
+            case .startTimer(let interval, let token):
+                _ = schedule(after: Int(interval * 1000)) { [weak self] in
+                    guard let self = self else { return }
+                    self.applySessionEffects(self.machine.handle(.timerFired(token), now: Date()))
+                }
+            case .readBack:
+                requestRealtimeState()
+            case .reportError(let message):
+                state.lastError = message
+                log(message)
+            case .cancelPending:
+                cancelModeTxWorkItems()
+                pendingModeRequest = nil
+            case .resumePausedTarget:
+                flushDeferredModeRequest()
+                flushPendingThermalLevel()
+            }
+        }
     }
 
     func log(_ message: String) {
@@ -257,8 +364,8 @@ final class CoolerController: ObservableObject {
             expectDisconnect = true
             ble.disconnect()
         }
-        pollTimer?.invalidate()
-        pollTimer = nil
+        thermalLoopTimer?.invalidate()
+        thermalLoopTimer = nil
         cancelAllWorkItems()
         freezeTxInFlight = false
         freezeSettledHandler = nil
@@ -267,12 +374,16 @@ final class CoolerController: ObservableObject {
         thermalLastLevel = nil
         demoMode = true
         state = .demo
+        phase = .ready
+        channel = .flydigi
         log("进入宣传演示模式（不扫描、不连接、不发蓝牙指令）")
     }
 
     func exitDemo() {
         demoMode = false
         state = CoolerState()
+        phase = .idle
+        channel = .flydigi
         log("退出宣传演示模式")
     }
 
@@ -290,13 +401,18 @@ final class CoolerController: ObservableObject {
 
     func connect(_ device: DiscoveredDevice) {
         error = nil
+        channel = device.channel
+        state.channel = device.channel
+        state.deviceName = device.name
+        setPhase(.connecting)
         ble.connect(device)
     }
 
     func disconnect() {
+        cancelFirmwareFlash()
         expectDisconnect = true
-        pollTimer?.invalidate()
-        pollTimer = nil
+        thermalLoopTimer?.invalidate()
+        thermalLoopTimer = nil
         cancelAllWorkItems()
         freezeTxInFlight = false
         freezeSettledHandler = nil
@@ -305,6 +421,7 @@ final class CoolerController: ObservableObject {
         thermalLastLevel = nil
         ble.disconnect()
         state = CoolerState()
+        phase = .disconnected
     }
 
     private func afterConnected() {
@@ -330,11 +447,27 @@ final class CoolerController: ObservableObject {
         })
     }
 
-    /// READY（收到第一帧 0x13）后的收尾：启动 2 秒轮询、清遗留 Freeze、恢复模式。
+    /// READY（收到第一帧 0x13）后的收尾：启动本地温控评估、清遗留 Freeze、恢复模式。
     private func onReadyState() {
         cancelReadyWorkItems()
         state.connectionNote = nil
-        startPollTimer()
+        setPhase(.ready)
+        startThermalLoopTimer()
+        if firmwareStage == .waitingForDevice, let image = flashingImage {
+            firmwareWaitWorkItem?.cancel()
+            firmwareWaitWorkItem = nil
+            firmwareReconnectExpected = false
+            // 刷后核对版本：红魔的版本号回读未验证，能读到才比对，
+            // 读不到只记日志、不判失败。
+            if !state.firmwareVersion.isEmpty, state.firmwareVersion == image.version {
+                firmwareStage = .deviceAccepted
+                log("固件刷写完成，设备版本已核对：\(image.version)")
+            } else {
+                firmwareStage = .transferred
+                log("固件刷写完成，设备已重连（版本号未读到，请在设备页核对）")
+            }
+            flashingImage = nil
+        }
         if state.freezeMode, !freezeDesired {
             // 重连后遗留 Freeze 清除：原版 App 没退出的超频状态。
             log("检测到原版 App 遗留的超频状态，已退出")
@@ -358,12 +491,14 @@ final class CoolerController: ObservableObject {
         }
     }
 
-    private func startPollTimer() {
-        pollTimer?.invalidate()
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+    /// READY 后启动本地温控评估循环（2 秒一次，只算档位、不发 BLE 轮询）。
+    /// 遥测改为 notify 驱动：设备主动推送状态帧；超过 5 秒没通知时
+    /// BLEManager 的静默看门狗才会补发一次 [0x13]。
+    private func startThermalLoopTimer() {
+        thermalLoopTimer?.invalidate()
+        thermalLoopTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                self.requestRealtimeState()
                 self.evaluateSoftwareThermal()
             }
         }
@@ -411,13 +546,32 @@ final class CoolerController: ObservableObject {
     // ------------------------------------------------------------ 事件处理
 
     private func onData(_ bytes: Data) {
+        // 红魔/黑鲨帧结构未验证：只透传给对应 Codec 尝试解析（目前返回 nil），
+        // 不按 B9X 帧表解析，避免误读。
+        if channel != .flydigi {
+            switch channel {
+            case .redMagic: _ = RedMagicCodec.decode(bytes)
+            case .blackShark: _ = BlackSharkCodec.decode(bytes)
+            case .flydigi: break
+            }
+            return
+        }
         guard let event = B9XProtocol.parse(bytes) else { return }
         switch event {
         case .state(let e):
             let wasReady = state.ready
+            let wasFreeze = state.freezeMode
             lastEcho = e
             lastEchoLightOn = e.lightOn
             state.applyStateEvent(e)
+            ble.freezeOn = state.freezeMode
+            applySessionEffects(machine.handle(.telemetry(e), now: Date()))
+            if state.freezeMode != wasFreeze {
+                applySessionEffects(machine.handle(.freezeChanged(state.freezeMode), now: Date()))
+                if !state.freezeMode {
+                    ble.notifyFreezeOff()
+                }
+            }
             if !wasReady && state.ready {
                 onReadyState()
             } else {
@@ -466,8 +620,8 @@ final class CoolerController: ObservableObject {
             }
         case .idle:
             didInitAfterConnect = false
-            pollTimer?.invalidate()
-            pollTimer = nil
+            thermalLoopTimer?.invalidate()
+            thermalLoopTimer = nil
             cancelAllWorkItems()
             freezeTxInFlight = false
             freezeSettledHandler = nil
@@ -475,10 +629,16 @@ final class CoolerController: ObservableObject {
             thermalLastLevel = nil
             state.ready = false
             state.pendingRunMode = nil
+            applySessionEffects(machine.handle(.connectionLost, now: Date()))
             if state.connected {
-                log("连接已断开")
-                if !expectDisconnect {
-                    notifyDisconnect()
+                if firmwareReconnectExpected {
+                    // 刷写后设备重启：等自动重连，不记断开、不发通知。
+                    log("设备重启，等待重连以核对固件版本")
+                } else {
+                    log("连接已断开")
+                    if !expectDisconnect {
+                        notifyDisconnect()
+                    }
                 }
             }
             expectDisconnect = false
@@ -840,6 +1000,16 @@ final class CoolerController: ObservableObject {
     private func executeModeSend(_ req: ModeRequest) {
         cancelModeTxWorkItems()
         let r = fillModeParams(req)
+        // 记入会话状态机（目标与归属）；本事件只记账不产生效果，
+        // 发送仍走下面的模式事务。
+        let machineTarget = ModeTarget(
+            mode: r.mode,
+            targetCelsius: r.target,
+            level: r.cold,
+            curveLevels: r.curve ?? B9XProtocol.defaultCurveLevels,
+            isSoftwareControlled: !r.manual
+        )
+        applySessionEffects(machine.handle(.userRequest(machineTarget), now: Date()))
         // 本地立即更新（pendingRunMode 供界面立即反馈；runMode 本身不乐观写，
         // 校验只认回显 lastEcho）。
         if r.mode == B9XProtocol.modeCustom {
@@ -1227,6 +1397,251 @@ final class CoolerController: ObservableObject {
 
     func handshake() {
         ble.enqueue(B9XProtocol.handshake(), key: "init")
+    }
+
+    // ------------------------------------------------------------ 固件刷写（Telink OTA）
+
+    /// 红魔 8 Pro 判定：按设备名推断（广播名未验证），含 "8 Pro"/"8Pro" 才放行。
+    private var isRedMagic8Pro: Bool {
+        state.deviceName.contains("8 Pro") || state.deviceName.contains("8Pro")
+    }
+
+    /// 固件刷写：仅红魔 8 Pro 可用，其他机型直接 failed。
+    /// 流程：核对 consent → SHA256 校验 → 分包下发 → 刷后静默重连核对版本。
+    /// OTA 帧结构未验证（见 TelinkOTA.swift），真机验证前谨慎使用。
+    func startFirmwareFlash(image: FirmwareImage, consent: String) async {
+        guard !demoMode else {
+            firmwareStage = .failed("演示模式下不能刷固件")
+            return
+        }
+        guard channel == .redMagic, isRedMagic8Pro else {
+            firmwareStage = .failed("仅红魔 8 Pro 支持刷固件（当前设备：\(state.deviceName)）")
+            log("固件刷写被拒：仅红魔 8 Pro 可用")
+            return
+        }
+        guard consent == Self.firmwareConsentPhrase else {
+            firmwareStage = .failed("请先输入确认短语“\(Self.firmwareConsentPhrase)”")
+            return
+        }
+        guard isConnected else {
+            firmwareStage = .failed("设备未连接")
+            return
+        }
+        guard let data = image.loadData() else {
+            firmwareStage = .failed("读不到固件镜像")
+            return
+        }
+        firmwareFlashCancelled = false
+        flashingImage = image
+        firmwareProgress = 0
+        setPhase(.flashing)
+        firmwareStage = .preparing
+        // SHA256 校验：包内暂无参考哈希，先算出摘要记入日志，
+        // 再走 TelinkOTA.validate（大小 + CRC32）。
+        let digest = SHA256.hash(data: data)
+        let shaHex = digest.map { String(format: "%02x", $0) }.joined()
+        log("固件 SHA256：\(shaHex)")
+        firmwareStage = .validating
+        guard TelinkOTA.validate(data) else {
+            firmwareStage = .failed("固件校验失败（大小或 CRC32 异常）")
+            flashingImage = nil
+            setPhase(state.ready ? .ready : .idle)
+            return
+        }
+        guard ble.hasOTACharacteristic else {
+            firmwareStage = .failed("未发现 OTA 特征，请确认设备处于可刷写状态")
+            flashingImage = nil
+            setPhase(state.ready ? .ready : .idle)
+            return
+        }
+        firmwareStage = .transferring
+        let startResult = await ble.enqueueBatch(
+            TelinkOTA.startRequests(imageSize: data.count, crc32: TelinkOTA.storedCRC32(data)),
+            priority: 100
+        )
+        guard !firmwareFlashCancelled else { return }
+        guard case .success = startResult else {
+            firmwareStage = .failed("刷写起始命令失败")
+            flashingImage = nil
+            setPhase(state.ready ? .ready : .idle)
+            return
+        }
+        // 分包下发：每 20 包一批，逐批等确认并更新进度。
+        let packets = TelinkOTA.packets(for: data)
+        let chunkSize = 20
+        var sent = 0
+        var failed = false
+        for chunkStart in stride(from: 0, to: packets.count, by: chunkSize) {
+            if firmwareFlashCancelled { return }
+            let chunk = Array(packets[chunkStart..<min(chunkStart + chunkSize, packets.count)])
+            let requests = chunk.map { GATTRequest(isOTA: true, payload: $0, responseRequired: true) }
+            let result = await ble.enqueueBatch(requests, priority: 100)
+            if firmwareFlashCancelled { return }
+            guard case .success = result else { failed = true; break }
+            sent += chunk.count
+            firmwareProgress = Double(sent) / Double(packets.count) * 0.9
+        }
+        if failed {
+            firmwareStage = .failed("固件传输中断")
+            flashingImage = nil
+            setPhase(state.ready ? .ready : .idle)
+            return
+        }
+        firmwareProgress = 0.95
+        firmwareStage = .submitting
+        let endResult = await ble.enqueueBatch([TelinkOTA.end()], priority: 100)
+        if firmwareFlashCancelled { return }
+        guard case .success = endResult else {
+            firmwareStage = .failed("固件提交失败")
+            flashingImage = nil
+            setPhase(state.ready ? .ready : .idle)
+            return
+        }
+        firmwareProgress = 1
+        firmwareStage = .waitingForDevice
+        firmwareReconnectExpected = true
+        log("固件已提交，等待设备重启重连")
+        ble.disconnectForFirmwareReboot()
+        // 30 秒等不到重连 → failed（设备可能需要手动重连后核对版本）。
+        firmwareWaitWorkItem?.cancel()
+        let waitItem = DispatchWorkItem { [weak self] in
+            guard let self = self, self.firmwareStage == .waitingForDevice else { return }
+            self.firmwareReconnectExpected = false
+            self.firmwareStage = .failed("设备重启后未重连，请手动重连后核对版本")
+            self.flashingImage = nil
+            self.setPhase(.idle)
+        }
+        firmwareWaitWorkItem = waitItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30, execute: waitItem)
+    }
+
+    /// 取消固件刷写（仅在刷写进行中有效）。
+    func cancelFirmwareFlash() {
+        switch firmwareStage {
+        case .preparing, .validating, .transferring, .submitting, .waitingForDevice:
+            firmwareFlashCancelled = true
+            firmwareWaitWorkItem?.cancel()
+            firmwareWaitWorkItem = nil
+            firmwareReconnectExpected = false
+            flashingImage = nil
+            ble.cancelAllBatches()
+            firmwareStage = .cancelled
+            setPhase(state.ready ? .ready : .idle)
+            log("固件刷写已取消")
+        default:
+            break
+        }
+    }
+
+    // ------------------------------------------------------------ 红魔 / 黑鲨扩展控制
+
+    /// LCD 上传：黑鲨 6 Pro 专属。图片转 RGB565 后分包上传。
+    /// 目标尺寸与上传协议未验证（见 BlackSharkCodec），真机验证前谨慎使用。
+    func uploadLCD(image: UIImage) async -> Bool {
+        guard channel == .blackShark, isConnected, !demoMode else {
+            log("LCD 上传被拒：仅黑鲨 6 Pro 可用（当前通道：\(channel.displayName)）")
+            return false
+        }
+        guard let rgb565 = BlackSharkCodec.rgb565(from: image) else {
+            log("LCD 上传失败：图片转换失败")
+            return false
+        }
+        let packets = BlackSharkCodec.lcdUploadPackets(rgb565: rgb565)
+        guard !packets.isEmpty else { return false }
+        log("LCD 上传开始（\(packets.count) 包，协议未验证）")
+        let result = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            var resumed = false
+            let requests = packets.map { GATTRequest(payload: $0) }
+            ble.enqueueBatch(requests, priority: 50) { batchResult in
+                guard !resumed else { return }
+                resumed = true
+                switch batchResult {
+                case .success: continuation.resume(returning: true)
+                case .failure: continuation.resume(returning: false)
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(returning: false)
+            }
+        }
+        log(result ? "LCD 上传完成（设备是否显示未验证）" : "LCD 上传失败或超时")
+        return result
+    }
+
+    /// 魔方灯效逐帧：像素为 0xRRGGBB。红魔专属，帧结构未验证。
+    func sendCubeFrame(pixels: [UInt32]) {
+        guard channel == .redMagic, isConnected, !demoMode else {
+            log("魔方灯效被拒：仅红魔可用（当前通道：\(channel.displayName)）")
+            return
+        }
+        let packets = RedMagicCodec.cubeFrame(pixels: pixels)
+        guard !packets.isEmpty else { return }
+        let requests = packets.map { GATTRequest(payload: $0) }
+        ble.enqueueBatch(requests, priority: 50) { [weak self] result in
+            Task { @MainActor [weak self] in
+                if case .failure(let failure) = result {
+                    self?.log("魔方灯效发送失败：\(failure.message)")
+                }
+            }
+        }
+    }
+
+    /// 红魔制冷曲线（尽力而为，帧结构未验证）。未连红魔时只保存不发送。
+    func setRedMagicCurve(_ levels: [Int]) {
+        let clamped = levels.map { max(1, min($0, 8)) }
+        redMagicCurveLevels = clamped
+        guard channel == .redMagic, isConnected, !demoMode else {
+            log("红魔曲线已保存（当前未连接红魔设备）")
+            return
+        }
+        ble.enqueue(RedMagicCodec.encodeCoolingCurve(clamped), key: "redmagic-curve")
+    }
+
+    /// 红魔音频律动 pattern（尽力而为，帧结构未验证）。未连红魔时只保存不发送。
+    func setRedMagicAudioPattern(_ index: Int) {
+        let clamped = max(0, min(index, 255))
+        redMagicAudioPatternIndex = clamped
+        guard channel == .redMagic, isConnected, !demoMode else {
+            log("红魔音频律动已保存（当前未连接红魔设备）")
+            return
+        }
+        ble.enqueue(RedMagicCodec.encodeAudioPattern(clamped), key: "redmagic-audio")
+    }
+
+    /// 检查更新：拉自家仓库 GitHub Releases latest，解析
+    /// tag_name/body/html_url；无新版或失败返回 nil。
+    func checkForUpdate() async -> UpdateInfo? {
+        guard let url = URL(string: Secrets.updateCheckURL) else { return nil }
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let tag = json["tag_name"] as? String,
+                  let htmlURLString = json["html_url"] as? String,
+                  let htmlURL = URL(string: htmlURLString) else { return nil }
+            let notes = json["body"] as? String ?? ""
+            let remote = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+            guard Self.isVersion(remote, newerThan: Self.currentVersion) else { return nil }
+            return UpdateInfo(version: remote, notes: notes, url: htmlURL)
+        } catch {
+            return nil
+        }
+    }
+
+    /// 当前版本（与工程 MARKETING_VERSION 保持一致）。
+    private static let currentVersion = "0.8.143"
+
+    private static func isVersion(_ candidate: String, newerThan current: String) -> Bool {
+        let a = candidate.split(separator: ".").compactMap { Int($0) }
+        let b = current.split(separator: ".").compactMap { Int($0) }
+        for i in 0..<max(a.count, b.count) {
+            let x = i < a.count ? a[i] : 0
+            let y = i < b.count ? b[i] : 0
+            if x != y { return x > y }
+        }
+        return false
     }
 
     // ------------------------------------------------------------ 设置导入导出

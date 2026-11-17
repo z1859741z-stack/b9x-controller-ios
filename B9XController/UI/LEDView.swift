@@ -14,6 +14,10 @@ struct LEDView: View {
     @State private var brightness: Int = 100 // 0...100
     @State private var colorful: Bool = false
     @State private var showEffectSheet = false
+    /// 逐颗选色环：12 颗灯珠的颜色（点选改色）。
+    @State private var pixelColors: [Color] = Array(repeating: Color(hex: 0x6EE7FF), count: 12)
+    @State private var selectedPixel = 0
+    @State private var modeLightingNote: String?
 
     private var state: CoolerState { controller.state }
 
@@ -31,9 +35,12 @@ struct LEDView: View {
             VStack(spacing: 16) {
                 lightCard
                 effectCard
+                previewCard
                 colorCard
+                pixelRingCard
                 speedCard
                 brightnessCard
+                modeLightingCard
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
@@ -135,10 +142,21 @@ struct LEDView: View {
                     ForEach(LEDDefaults.modes, id: \.id) { mode in
                         Button {
                             selectedType = mode.id
-                            colors = LEDDefaults.colors(for: mode.id)
+                            if let saved = LEDModeLightingStore.load(for: mode.id) {
+                                colors = saved.colors.map { Color(hex: $0) }
+                                uiSpeed = LEDDefaults.uiSpeed(for: mode.id, raw: saved.period)
+                                brightness = saved.light
+                                colorful = saved.colorful
+                                modeLightingNote = "已载入“\(mode.name)”保存的灯效"
+                            } else {
+                                colors = LEDDefaults.colors(for: mode.id)
+                                selectedChip = 0
+                                wheelColor = colors.first ?? .red
+                                colorful = false
+                                modeLightingNote = nil
+                            }
                             selectedChip = 0
                             wheelColor = colors.first ?? .red
-                            colorful = false
                             apply()
                             showEffectSheet = false
                         } label: {
@@ -345,6 +363,161 @@ struct LEDView: View {
             colorful: colorful
         )
     }
+
+    /// 把灯环的 12 颗颜色（取前 8 颗）发到设备。
+    private func applyPixelRing() {
+        let rgb = pixelColors.prefix(8).map { $0.toRGBInt() }
+        controller.applyLed(
+            type: selectedType,
+            period: LEDDefaults.speedRaw(for: selectedType, uiSpeed: uiSpeed),
+            colors: rgb,
+            light: brightness,
+            colorful: colorful
+        )
+    }
+
+    // ------------------------------------------------------------ 实时预览
+
+    /// Canvas 实时预览：先看效果再下发（TimelineView 驱动动画）。
+    private var previewCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("实时预览")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("先预览，再下发")
+                        .font(.caption)
+                        .foregroundStyle(Color.b9xTextDim)
+                }
+                LEDPreviewView(
+                    type: selectedType,
+                    colors: colors,
+                    brightness: brightness,
+                    speed: uiSpeed
+                )
+                .frame(height: 120)
+                .frame(maxWidth: .infinity)
+                .background(Color.black.opacity(0.85))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                Text("预览只是示意（按当前颜色/速度/亮度模拟），实际效果以散热器为准。改颜色、速度、亮度会立即下发，和以前一样。")
+                    .font(.caption)
+                    .foregroundStyle(Color.b9xTextDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ 逐颗选色环
+
+    private var pixelRingCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("逐颗选色")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("点灯珠改色")
+                        .font(.caption)
+                        .foregroundStyle(Color.b9xTextDim)
+                }
+                PixelRingView(colors: $pixelColors, selected: $selectedPixel, wheelColor: wheelColor)
+                    .frame(height: 180)
+                    .frame(maxWidth: .infinity)
+                HStack {
+                    Text("已选第 \(selectedPixel + 1) 颗 · \(pixelColors[selectedPixel].hexString)")
+                        .font(.subheadline.monospaced())
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("点色轮改色，再点灯珠上色")
+                        .font(.caption)
+                        .foregroundStyle(Color.b9xTextDim)
+                }
+                Button {
+                    applyPixelRing()
+                } label: {
+                    Text("把灯环颜色发到设备")
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.b9xCard2)
+                        .foregroundStyle(.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                Text("灯环共 12 颗，下发时取前 8 颗颜色（协议上限 8 色）。")
+                    .font(.caption)
+                    .foregroundStyle(Color.b9xTextDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ 模式独立灯效
+
+    private var modeLightingCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("模式独立灯效")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if LEDModeLightingStore.load(for: selectedType) != nil {
+                        Text("已保存")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.b9xAccent.opacity(0.2))
+                            .foregroundStyle(Color.b9xAccentLight)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+                Text("每个灯效模式可以绑一套自己的灯效（颜色/速度/亮度）。切换模式时自动载入该模式保存的灯效，没保存过就用默认。")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.b9xTextDim)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let note = modeLightingNote {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
+                HStack(spacing: 10) {
+                    Button {
+                        LEDModeLightingStore.save(LEDProfile(
+                            type: selectedType,
+                            colors: colors.map { $0.toRGBInt() },
+                            period: LEDDefaults.speedRaw(for: selectedType, uiSpeed: uiSpeed),
+                            light: brightness,
+                            colorful: colorful
+                        ))
+                        modeLightingNote = "已保存为“\(modeName)”的灯效"
+                    } label: {
+                        Text("保存为此模式的灯效")
+                            .font(.subheadline.bold())
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.b9xAccent)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    Button {
+                        LEDModeLightingStore.remove(for: selectedType)
+                        modeLightingNote = "已清除“\(modeName)”保存的灯效，下次切回来用默认"
+                    } label: {
+                        Text("清除保存")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.b9xCard2)
+                            .foregroundStyle(.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ------------------------------------------------------------ LED 常量（spec §2）
@@ -497,5 +670,148 @@ extension Color {
     /// "#RRGGBB" 格式。
     var hexString: String {
         String(format: "#%06X", toRGBInt())
+    }
+}
+
+// ------------------------------------------------------------ 实时预览 + 逐颗选色 + 模式独立灯效
+
+/// 灯效实时预览：TimelineView 驱动，Canvas 画 12 颗灯珠的动画。
+/// 按模式给不同的动法（彩虹流动转圈、呼吸/心跳整体明暗、其余按颜色轮换），
+/// 只是示意，不代表设备上的精确时序。
+struct LEDPreviewView: View {
+    var type: Int
+    var colors: [Color]
+    var brightness: Int
+    var speed: Int // 0 慢 / 1 中 / 2 快
+
+    private var dotCount: Int { 12 }
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            Canvas { context, size in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                let radius = min(size.width, size.height) / 2 - 14
+                let speedFactor: Double = [0.5, 1.0, 2.0][min(max(speed, 0), 2)]
+                let bright = Double(brightness) / 100.0
+                let palette = colors.isEmpty ? [Color(hex: 0x6EE7FF)] : colors
+                for i in 0..<dotCount {
+                    let angle = Double(i) / Double(dotCount) * 2 * .pi - .pi / 2
+                    let point = CGPoint(
+                        x: center.x + cos(angle) * radius,
+                        y: center.y + sin(angle) * radius
+                    )
+                    var color = palette[i % palette.count]
+                    var alpha = bright
+                    var scale: CGFloat = 1
+                    switch type {
+                    case 3: // 彩虹流动：颜色沿环转动。
+                        let shift = Int(t * 4 * speedFactor) % palette.count
+                        color = palette[(i + shift) % palette.count]
+                    case 5, 17: // 呼吸 / 心跳：整体明暗脉冲。
+                        let pulse = 0.5 + 0.5 * sin(t * 2.5 * speedFactor)
+                        alpha = bright * (0.25 + 0.75 * pulse)
+                        scale = 0.8 + 0.3 * CGFloat(pulse)
+                    case 11: // 长亮：静止。
+                        break
+                    case 16, 20, 21: // 多色旋转 / 赛博朋克 / 碰撞：逐颗轮亮。
+                        let active = Int(t * 6 * speedFactor) % dotCount
+                        alpha = (i == active || i == (active + 1) % dotCount) ? bright : bright * 0.25
+                    default: // 渐变等：颜色缓慢轮换。
+                        let shift = Int(t * 2 * speedFactor) % palette.count
+                        color = palette[(i + shift) % palette.count]
+                    }
+                    let dot = Path(ellipseIn: CGRect(
+                        x: point.x - 7 * scale, y: point.y - 7 * scale,
+                        width: 14 * scale, height: 14 * scale
+                    ))
+                    context.fill(dot, with: .color(color.opacity(max(0.05, alpha))))
+                }
+            }
+        }
+    }
+}
+
+/// 逐颗选色环：12 颗灯珠排成环，点哪颗就把色轮当前颜色涂到哪颗上。
+struct PixelRingView: View {
+    @Binding var colors: [Color]
+    @Binding var selected: Int
+    var wheelColor: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            let size = min(geo.size.width, geo.size.height)
+            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+            let radius = size / 2 - 16
+            ZStack {
+                Circle()
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 2)
+                    .frame(width: radius * 2, height: radius * 2)
+                ForEach(colors.indices, id: \.self) { i in
+                    let angle = Double(i) / Double(colors.count) * 2 * .pi - .pi / 2
+                    let point = CGPoint(
+                        x: center.x + cos(angle) * radius,
+                        y: center.y + sin(angle) * radius
+                    )
+                    Circle()
+                        .fill(colors[i])
+                        .frame(width: 26, height: 26)
+                        .overlay(
+                            Circle()
+                                .stroke(selected == i ? Color.white : Color.primary.opacity(0.25),
+                                        lineWidth: selected == i ? 3 : 1)
+                        )
+                        .shadow(radius: selected == i ? 4 : 0)
+                        .position(point)
+                        .onTapGesture {
+                            selected = i
+                            colors[i] = wheelColor
+                        }
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+    }
+}
+
+/// 一个模式绑定的灯效（颜色/速度原始值/亮度/多彩开关）。
+struct LEDProfile: Codable, Equatable {
+    var type: Int
+    var colors: [Int]
+    var period: Int
+    var light: Int
+    var colorful: Bool
+}
+
+/// 模式独立灯效的本地保存（UserDefaults JSON，key 为模式 id）。
+enum LEDModeLightingStore {
+    static let defaultsKey = "enginecore.ledModeLighting.v1"
+
+    private static func loadAll() -> [String: LEDProfile] {
+        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
+              let map = try? JSONDecoder().decode([String: LEDProfile].self, from: data) else {
+            return [:]
+        }
+        return map
+    }
+
+    static func load(for type: Int) -> LEDProfile? {
+        loadAll()[String(type)]
+    }
+
+    static func save(_ profile: LEDProfile) {
+        var map = loadAll()
+        map[String(profile.type)] = profile
+        if let data = try? JSONEncoder().encode(map) {
+            UserDefaults.standard.set(data, forKey: defaultsKey)
+        }
+    }
+
+    static func remove(for type: Int) {
+        var map = loadAll()
+        map.removeValue(forKey: String(type))
+        if let data = try? JSONEncoder().encode(map) {
+            UserDefaults.standard.set(data, forKey: defaultsKey)
+        }
     }
 }

@@ -1,27 +1,171 @@
 import SwiftUI
-import UniformTypeIdentifiers
-import UserNotifications
 
-/// 更多页（对照原版“设置”页）：7 项菜单 + 宣传演示模式开关。
+/// “我的”/ 设置页（对照原版 MyView / SettingsView）：
+/// 顶部应用卡 + 关于作者 / 开源与许可 / 用户协议与免责声明 + 系统信息 +
+/// 外观 / 语言 / 媒体背景 / 通知与实时活动 / 备份恢复 + 设备与连接 + 数据与高级。
+/// 注意：原版设置页里的“特别鸣谢”行这里根本没有（重写不建那一行）；
+/// “抖音主页、支持作者”也只在原版 AuthorView 里有，这里不建。
 struct MoreView: View {
     @EnvironmentObject private var controller: CoolerController
+    @Environment(\.openURL) private var openURL
+    @ObservedObject private var appearance = AppearanceSettings.shared
+    @State private var showUpdateAlert = false
+    @State private var updateMessage = ""
+    @State private var updateURL: URL?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    Text("设置")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    menuCard
+                    appCard
+                    aboutCard
+                    settingsCard
+                    deviceCard
+                    dataCard
                     demoCard
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
+                .padding(.bottom, 24)
             }
+            .navigationTitle("我的")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
+        }
+        .alert("检查更新", isPresented: $showUpdateAlert) {
+            if let url = updateURL {
+                Button("前往查看") {
+                    openURL(url)
+                    showUpdateAlert = false
+                }
+            }
+            Button("好", role: .cancel) { showUpdateAlert = false }
+        } message: {
+            Text(updateMessage)
+        }
+    }
+
+    // ------------------------------------------------------------ 应用卡
+
+    private var appCard: some View {
+        GlassCard {
+            VStack(spacing: 12) {
+                Image("BearLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 84, height: 84)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                Text("引擎核心 Plus")
+                    .font(.title3.bold())
+                    .foregroundStyle(.primary)
+                Text("版本 \(AppInfo.versionString)")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.b9xTextDim)
+                Divider()
+                Button {
+                    Task {
+                        if let info = await controller.checkForUpdate() {
+                            updateMessage = "发现新版 \(info.version)\n\(info.notes)"
+                            updateURL = info.url
+                        } else {
+                            updateMessage = "已是最新版本。"
+                            updateURL = nil
+                        }
+                        showUpdateAlert = true
+                    }
+                } label: {
+                    HStack {
+                        Text("检查更新")
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Text(AppInfo.shortVersion)
+                            .font(.subheadline.monospaced())
+                            .foregroundStyle(Color.b9xTextDim)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.b9xTextDim)
+                    }
+                }
+                .buttonStyle(.plain)
+                Toggle("启动时检查更新", isOn: $appearance.checkUpdateOnLaunch)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ 关于区
+
+    private var aboutCard: some View {
+        GlassCard {
+            VStack(spacing: 0) {
+                menuRow("关于作者", "引擎核心 Plus 团队") {
+                    AuthorView()
+                }
+                Divider()
+                menuRow("开源与许可", "代码与框架来源") {
+                    LicensesView()
+                }
+                Divider()
+                menuRow("用户协议与免责声明", "33 条 · 可重新阅读") {
+                    LegalDocumentView(readOnly: true)
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ 设置区
+
+    private var settingsCard: some View {
+        GlassCard {
+            VStack(spacing: 0) {
+                menuRow("系统信息", "软件版本 · 系统版本 · 最低支持 iOS 17.0") {
+                    SystemInfoView()
+                }
+                Divider()
+                menuRow("外观", "液态玻璃 · 透明度 · 动画 · 默认页面") {
+                    AppearanceView()
+                }
+                Divider()
+                menuRow("语言", appearance.language.title) {
+                    LanguageView()
+                }
+                Divider()
+                menuRow("媒体背景", appearance.hasCustomBackground ? "已设置背景图" : "选图 · 遮罩") {
+                    MediaBackgroundView()
+                }
+                Divider()
+                menuRow("通知与实时活动", "断连通知 · 锁屏实时活动") {
+                    NotificationSettingsView()
+                }
+                Divider()
+                menuRow("备份恢复", "设置 JSON 导出 / 导入") {
+                    BackupRestoreView()
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ 设备与数据
+
+    private var deviceCard: some View {
+        GlassCard {
+            VStack(spacing: 0) {
+                menuRow("设备与连接", connectionSubtitle) {
+                    ConnectView()
+                }
+            }
+        }
+    }
+
+    private var dataCard: some View {
+        GlassCard {
+            VStack(spacing: 0) {
+                menuRow("数据与高级", "刷新 · 运行日志 · 诊断") {
+                    DataAdvancedView()
+                }
+            }
         }
     }
 
@@ -32,40 +176,6 @@ struct MoreView: View {
         case .connecting: return "正在连接…"
         case .scanning: return "扫描中…"
         default: return "未连接"
-        }
-    }
-
-    private var menuCard: some View {
-        GlassCard {
-            VStack(spacing: 0) {
-                menuRow("外观与主页", "玻璃 · 主页 · 背景 · 动画与方向") {
-                    AppearanceView()
-                }
-                Divider()
-                menuRow("设备与连接", connectionSubtitle) {
-                    ConnectView()
-                }
-                Divider()
-                menuRow("后台运行", "无障碍保活 · 前台服务 · 后台权限 · 退出诊断") {
-                    BackgroundRunView()
-                }
-                Divider()
-                menuRow("系统集成", "通知栏 · 原生实时动态 · HyperOS 超级岛") {
-                    IntegrationView()
-                }
-                Divider()
-                menuRow("设备功能", "散热模式 · 自由变频 · 超频 · 灯光 · 保护 · 定时") {
-                    DeviceFeaturesView()
-                }
-                Divider()
-                menuRow("数据与高级", "备份 · 刷新 · 运行日志 · 诊断") {
-                    DataAdvancedView()
-                }
-                Divider()
-                menuRow("关于我们", "版本信息 · 用户须知 · 联系方式") {
-                    AboutView()
-                }
-            }
         }
     }
 
@@ -117,408 +227,11 @@ struct MoreView: View {
     }
 }
 
-// ------------------------------------------------------------ 外观与主页
-// v2：没有手动主题切换，全 App 跟随系统外观。
-
-struct AppearanceView: View {
-    @AppStorage("glassEnabled") private var glassEnabled = true
-    @AppStorage("animationsEnabled") private var animationsEnabled = true
-    @AppStorage("defaultTab") private var defaultTab = "device"
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                GlassCard {
-                    VStack(spacing: 12) {
-                        Toggle("液态玻璃底栏", isOn: $glassEnabled)
-                        Toggle("界面动画", isOn: $animationsEnabled)
-                        HStack {
-                            Text("打开时默认页面")
-                            Spacer()
-                            Picker("", selection: $defaultTab) {
-                                Text("设备").tag("device")
-                                Text("联动").tag("automation")
-                                Text("更多").tag("more")
-                            }
-                            .pickerStyle(.segmented)
-                            .frame(width: 200)
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                }
-                Text("外观跟随系统（浅色 / 深色自动切换）。")
-                    .font(.caption)
-                    .foregroundStyle(Color.b9xTextDim)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-        }
-        .navigationTitle("外观与主页")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-// ------------------------------------------------------------ 后台运行
-
-struct BackgroundRunView: View {
-    @EnvironmentObject private var controller: CoolerController
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        infoRow("蓝牙后台模式", "bluetooth-central 已配置")
-                        infoRow("蓝牙状态", controller.ble.bluetoothState)
-                        infoRow("断线自动重连", controller.ble.autoReconnectEnabled ? "开启" : "关闭")
-                        Divider()
-                        Text("无障碍保活：iOS 没有无障碍保活，已去掉；断线后自动重连。")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("前台服务：iOS 没有前台服务概念，已用系统蓝牙后台模式替代。")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("退出诊断")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        let disconnects = controller.logs.filter { $0.message.contains("断开") }
-                        if disconnects.isEmpty {
-                            Text("暂无异常退出记录。")
-                                .font(.subheadline)
-                                .foregroundStyle(Color.b9xTextDim)
-                        } else {
-                            ForEach(disconnects.suffix(5)) { entry in
-                                Text("\(entry.timeString)  \(entry.message)")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.primary)
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-        }
-        .navigationTitle("后台运行")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func infoRow(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(Color.b9xTextDim)
-            Spacer()
-            Text(value)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-        }
-    }
-}
-
-// ------------------------------------------------------------ 系统集成
-
-struct IntegrationView: View {
-    @AppStorage("notifyOnDisconnect") private var notifyOnDisconnect = false
-    @State private var notifyStatus = ""
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Toggle("散热器断连时发通知", isOn: Binding(
-                            get: { notifyOnDisconnect },
-                            set: { newValue in
-                                if newValue {
-                                    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
-                                        DispatchQueue.main.async {
-                                            notifyOnDisconnect = granted
-                                            notifyStatus = granted ? "已授权" : "未授权，请去系统设置里允许通知"
-                                        }
-                                    }
-                                } else {
-                                    notifyOnDisconnect = false
-                                    notifyStatus = ""
-                                }
-                            }
-                        ))
-                        .foregroundStyle(.primary)
-                        if !notifyStatus.isEmpty {
-                            Text(notifyStatus)
-                                .font(.caption)
-                                .foregroundStyle(Color.b9xTextDim)
-                        }
-                        Divider()
-                        Text("原生实时动态（Live Activity）：后续版本实现，需小组件扩展。")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("HyperOS 超级岛：iOS 无对等功能。")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-        }
-        .navigationTitle("系统集成")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-// ------------------------------------------------------------ 设备功能（散热模式页）
-
-struct DeviceFeaturesView: View {
-    @EnvironmentObject private var controller: CoolerController
-    @State private var curve: [Int] = FreeCurve.defaults
-    @State private var coldSlider: Double = 100
-    @State private var windSlider: Double = 4500
-
-    private var state: CoolerState { controller.state }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                ModeGridView(isInFeaturesPage: true)
-
-                targetStepperCard
-                slidersCard
-
-                NavigationLink {
-                    LEDView()
-                } label: {
-                    GlassCard {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("灯光")
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                Text("10 种灯效 · 颜色与速度可调")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.b9xTextDim)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(Color.b9xTextDim)
-                        }
-                    }
-                }
-
-                curveCard
-                expertCard
-
-                NavigationLink {
-                    ProtectionView()
-                } label: {
-                    GlassCard {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("保护机制")
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                Text("低温保护 · 高温保护状态")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.b9xTextDim)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(Color.b9xTextDim)
-                        }
-                    }
-                }
-
-                NavigationLink {
-                    TimerView()
-                } label: {
-                    GlassCard {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("定时关机")
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                Text(state.timedShutdownRunning ? "运行中，剩余 \(remainingMinutes) 分钟" : "未开启")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.b9xTextDim)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(Color.b9xTextDim)
-                        }
-                    }
-                }
-
-                // 底部超频体验行：加底边距，不被底栏遮住。
-                OverclockExperienceRow()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 100)
-        }
-        .navigationTitle("设备功能")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            curve = FreeCurve.effectiveLevels(from: state)
-            coldSlider = Double(state.coldLevel)
-            windSlider = Double(state.windLevel)
-        }
-        .onChange(of: state.coldLevel) { _, newValue in
-            coldSlider = Double(newValue)
-        }
-        .onChange(of: state.windLevel) { _, newValue in
-            windSlider = Double(newValue)
-        }
-    }
-
-    private var remainingMinutes: Int {
-        if state.timedCountdownInMinute {
-            return state.timeCountdown
-        }
-        return (state.timeCountdown + 59) / 60
-    }
-
-    /// 目标温度步进器（-20...16，点 +/- 立即发帧，本地优先不弹回）。
-    private var targetStepperCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Stepper(
-                    "目标温度 \(state.coolerTargetC)°C",
-                    value: Binding(
-                        get: { state.coolerTargetC },
-                        set: {
-                            markManualOverride()
-                            controller.setTargetTemperature($0)
-                        }
-                    ),
-                    in: -20...16
-                )
-                .foregroundStyle(.primary)
-                Text("目标温控环路的目标温度；智能变频下也会按此目标调节。")
-                    .font(.caption)
-                    .foregroundStyle(Color.b9xTextDim)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    /// 制冷 / 风量滑块：拖动中实时生效、松手确认、数值与 thumb 实时同步，不显示电压。
-    private var slidersCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 16) {
-                ValueSlider(
-                    title: "制冷强度",
-                    value: $coldSlider,
-                    range: 0...175,
-                    step: 1,
-                    display: "制冷强度 \(Int(coldSlider)) · \(Int(coldSlider) * 100 / 175)%",
-                    onChange: { controller.setColdLevel(Int($0)) },
-                    onEditingEnded: {
-                        markManualOverride()
-                        controller.setColdLevel(Int($0))
-                    }
-                )
-                ValueSlider(
-                    title: "风量",
-                    value: $windSlider,
-                    range: 4000...5700,
-                    step: 100,
-                    display: "风量 \(Int(windSlider)) · \(Int(windSlider) * 100 / 5700)%",
-                    onChange: { controller.setWindLevelViaMode(Int($0)) },
-                    onEditingEnded: {
-                        markManualOverride()
-                        controller.setWindLevelViaMode(Int($0))
-                    }
-                )
-            }
-        }
-    }
-
-    /// 自定义温度曲线：9 点温度 -12...12，档位 1...8，改完立即发曲线帧。
-    private var curveCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("自定义温度曲线（9 段）")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text("每段对应一个温度点的制冷档位，档位 1...8，值越大越冷。仅 B9X 支持。")
-                    .font(.caption)
-                    .foregroundStyle(Color.b9xTextDim)
-                    .fixedSize(horizontal: false, vertical: true)
-                ForEach(0..<9, id: \.self) { i in
-                    HStack {
-                        Text("\(FreeCurve.temperatures[i])°C")
-                            .font(.caption.monospaced())
-                            .foregroundStyle(Color.b9xTextDim)
-                            .frame(width: 44, alignment: .leading)
-                        Slider(
-                            value: Binding(
-                                get: { Double(curve[i]) },
-                                set: { curve[i] = Int($0) }
-                            ),
-                            in: 1...8,
-                            step: 1,
-                            onEditingChanged: { editing in
-                                if !editing {
-                                    markManualOverride()
-                                    controller.setCustomCurve(curve)
-                                }
-                            }
-                        )
-                        .tint(.b9xAccent)
-                        Text("\(curve[i])")
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.primary)
-                            .frame(width: 20, alignment: .trailing)
-                    }
-                }
-                Button {
-                    markManualOverride()
-                    controller.setCustomCurve(curve)
-                } label: {
-                    Text("应用曲线")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.b9xAccent)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-        }
-    }
-
-    /// 专家模式入口：B9X 不提供，仅保留入口。
-    private var expertCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Toggle("专家模式", isOn: Binding(
-                    get: { state.experimentalModeOn },
-                    set: { controller.setExperimentalMode(enabled: $0) }
-                ))
-                .foregroundStyle(.primary)
-                Text("B9X 不提供专家模式，仅保留入口；原版 App 也不使用此模式。")
-                    .font(.caption)
-                    .foregroundStyle(Color.b9xTextDim)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-}
-
 // ------------------------------------------------------------ 数据与高级
+// 运行日志 + 诊断 + 重新读取设备状态。备份导出/导入已搬到 BackupRestoreView。
 
 struct DataAdvancedView: View {
     @EnvironmentObject private var controller: CoolerController
-    @State private var showExport = false
-    @State private var showImport = false
-    @State private var exportData: Data?
-    @State private var importError: String?
 
     private var state: CoolerState { controller.state }
 
@@ -526,38 +239,6 @@ struct DataAdvancedView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 16) {
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("备份")
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            HStack(spacing: 10) {
-                                Button {
-                                    let settings = controller.currentSettingsExport()
-                                    exportData = try? JSONEncoder().encode(settings)
-                                    showExport = true
-                                } label: {
-                                    Text("导出设置")
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(Color.b9xAccent.opacity(0.25))
-                                        .foregroundStyle(.primary)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                }
-                                Button {
-                                    showImport = true
-                                } label: {
-                                    Text("导入设置")
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(Color.b9xAccent.opacity(0.25))
-                                        .foregroundStyle(.primary)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                }
-                            }
-                        }
-                    }
-
                     GlassCard {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("运行日志")
@@ -584,6 +265,8 @@ struct DataAdvancedView: View {
                                 .font(.headline)
                                 .foregroundStyle(.primary)
                             infoRow("蓝牙状态", controller.ble.bluetoothState)
+                            infoRow("蓝牙后台模式", "bluetooth-central 已配置")
+                            infoRow("断线自动重连", controller.ble.autoReconnectEnabled ? "开启" : "关闭")
                             infoRow("连接状态", controller.connection.rawValue)
                             infoRow("上次设备", controller.ble.hasLastDevice() ? "已记录" : "无")
                             infoRow("固件版本", state.firmwareVersion.isEmpty ? "—" : state.firmwareVersion)
@@ -615,38 +298,6 @@ struct DataAdvancedView: View {
                 scrollLogToBottom(proxy)
             }
         }
-        .fileExporter(
-            isPresented: $showExport,
-            document: SettingsFile(data: exportData ?? Data()),
-            contentType: .json,
-            defaultFilename: "b9x-settings.json"
-        ) { _ in }
-        .fileImporter(
-            isPresented: $showImport,
-            allowedContentTypes: [.json],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                guard let url = urls.first,
-                      let data = try? Data(contentsOf: url),
-                      let settings = try? JSONDecoder().decode(B9XSettingsExport.self, from: data) else {
-                    importError = "导入失败：文件格式不对"
-                    return
-                }
-                controller.applySettingsImport(settings)
-            case .failure(let error):
-                importError = "导入失败：\(error.localizedDescription)"
-            }
-        }
-        .alert("导入失败", isPresented: Binding(
-            get: { importError != nil },
-            set: { if !$0 { importError = nil } }
-        )) {
-            Button("好", role: .cancel) { importError = nil }
-        } message: {
-            Text(importError ?? "")
-        }
     }
 
     /// 新日志自动滚动到底部。
@@ -655,108 +306,6 @@ struct DataAdvancedView: View {
         withAnimation {
             proxy.scrollTo(last.id, anchor: .bottom)
         }
-    }
-
-    private func infoRow(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(Color.b9xTextDim)
-            Spacer()
-            Text(value)
-                .font(.subheadline.monospaced())
-                .foregroundStyle(.primary)
-        }
-    }
-}
-
-/// JSON 设置文件（供 fileExporter / fileImporter 使用）。
-struct SettingsFile: FileDocument {
-    static var readableContentTypes: [UTType] { [.json] }
-
-    var data: Data
-
-    init(data: Data) {
-        self.data = data
-    }
-
-    init(configuration: ReadConfiguration) throws {
-        data = configuration.file.regularFileContents ?? Data()
-    }
-
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: data)
-    }
-}
-
-// ------------------------------------------------------------ 关于我们
-
-struct AboutView: View {
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                GlassCard {
-                    VStack(spacing: 12) {
-                        Image("BearLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 84, height: 84)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                        Text("引擎核心 Plus")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        infoRow("版本", "0.8.143（227）")
-                        infoRow("开发者", "伊森 & 耄耋")
-                        Text("飞智 B6X / B7X / B8X / B9X 散热器第三方控制器。基于 BLE FFE0/FFE1/FFE4 协议的原生重写，与设备品牌官方无隶属关系。")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("社区与联系")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Link("z1859741z@gmail.com", destination: URL(string: "mailto:z1859741z@gmail.com")!)
-                            .font(.subheadline)
-                    }
-                }
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("用户须知与免责声明")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Text("超频会让散热器以最大功率运行（风量最高 5700 RPM），请使用 30W 以上 PD 充电头供电，长时间超频可能缩短散热器寿命。本 App 为第三方工具，与飞智官方无关；使用风险由用户自行承担。")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("iOS 适配说明：游戏检测自动联动无法实现（iOS 不允许读取其他 App 状态），改用“连接后恢复上次模式”+ 快捷指令；手机温度用系统热状态替代；Shizuku、悬浮窗、无障碍保活在 iOS 上没有，已去掉；后台连接用系统蓝牙后台模式保持。")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("开源与第三方组件")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Text("SwiftUI · CoreBluetooth · AppIntents")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                        Text("协议对照开源项目 feizhi-b9x-cooler-client，并与原版实现对照核对。")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-        }
-        .navigationTitle("关于我们")
-        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func infoRow(_ title: String, _ value: String) -> some View {

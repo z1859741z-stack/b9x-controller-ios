@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 手动操作后自动化暂停 60 秒：UI 层本地记录（核心层 manualOverrideUntil 未对外暴露，
 /// 待核心层暴露 isManualOverrideActive 后可改读核心状态）。
-/// 直接读写 UserDefaults，供 DeviceView / MoreView / AutomationView 共用。
+/// 直接读写 UserDefaults，供 HomeView / MoreView / AutomationView 共用。
 var manualOverrideUntil: Double {
     get { UserDefaults.standard.double(forKey: "manualOverrideUntil") }
     set { UserDefaults.standard.set(newValue, forKey: "manualOverrideUntil") }
@@ -14,299 +14,6 @@ func markManualOverride() {
 
 private func manualOverrideActive(now: Date) -> Bool {
     now.timeIntervalSince1970 < manualOverrideUntil
-}
-
-/// 设备主页面（对照原版“设备”页）：
-/// 顶部 B9X + 连接开关；冷面温度一行 + 圆形网纹 Y 形设备图；6 格数据；
-/// 散热模式卡（6 个按钮 + 按当前模式的专属行）；超频体验行；快捷控制三卡片。
-struct DeviceView: View {
-    @EnvironmentObject private var controller: CoolerController
-    @Binding var tab: ContentView.Tab
-    @State private var showConnectSheet = false
-
-    private var state: CoolerState { controller.state }
-    private var connected: Bool { controller.isConnected }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 14) {
-                    topRow
-                    noticeBanners
-                    mainCard
-
-                    HStack {
-                        Text("散热模式")
-                            .font(.title3.bold())
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        NavigationLink("更多 ›") {
-                            DeviceFeaturesView()
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(Color.b9xAccentLight)
-                    }
-
-                    ModeGridView()
-
-                    OverclockExperienceRow {
-                        tab = .automation
-                    }
-
-                    quickControls
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 20)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showConnectSheet) {
-                NavigationStack {
-                    ConnectView()
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("完成") { showConnectSheet = false }
-                            }
-                        }
-                }
-            }
-        }
-    }
-
-    private var statusText: String {
-        if controller.demoMode { return "演示中" }
-        switch controller.connection {
-        case .connected: return "已连接"
-        case .connecting: return "正在连接…"
-        case .scanning: return "扫描中…"
-        case .disconnecting: return "断开中…"
-        case .idle: return "未连接"
-        }
-    }
-
-    private var statusColor: Color {
-        if controller.demoMode { return .b9xAccentLight }
-        switch controller.connection {
-        case .connected: return .green
-        case .connecting, .scanning: return .yellow
-        default: return .gray
-        }
-    }
-
-    private var topRow: some View {
-        HStack {
-            NavigationLink {
-                ConnectView()
-            } label: {
-                HStack(spacing: 4) {
-                    Text("B9X")
-                        .font(.title2.bold())
-                        .foregroundStyle(.primary)
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(Color.b9xTextDim)
-                }
-            }
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
-            Text(statusText)
-                .font(.subheadline)
-                .foregroundStyle(Color.b9xTextDim)
-            Spacer()
-            Text("连接")
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-            Toggle("", isOn: Binding(
-                get: { connected },
-                set: { on in
-                    if on {
-                        if controller.demoMode { return }
-                        if controller.ble.hasLastDevice() {
-                            controller.ble.autoConnectLastDevice()
-                        } else {
-                            showConnectSheet = true
-                        }
-                    } else {
-                        if controller.demoMode {
-                            controller.exitDemo()
-                        } else {
-                            controller.disconnect()
-                        }
-                    }
-                }
-            ))
-            .labelsHidden()
-        }
-    }
-
-    /// 首页横幅：假连 / 遗留超频提示（核心层 connectionNote）与最近一次错误。
-    @ViewBuilder
-    private var noticeBanners: some View {
-        if let note = state.connectionNote, !note.isEmpty {
-            GlassCard {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.yellow)
-                    Text(note)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        if let error = state.lastError, !error.isEmpty {
-            GlassCard {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.red)
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
-    /// 冷面温度：-12.4° 一行显示，字体自适应缩小，绝不换行。
-    private var coldTemperatureText: String {
-        let v = state.temperatureValue
-        if v.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f°C", v)
-        }
-        return String(format: "%.1f°C", v)
-    }
-
-    private var mainCard: some View {
-        GlassCard {
-            VStack(spacing: 0) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("冷面温度")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.b9xTextDim)
-                        Text(connected ? coldTemperatureText : "--")
-                            .font(.system(size: 44, weight: .bold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                    }
-                    Spacer()
-                    CoolerImageView()
-                        .frame(width: 120, height: 120)
-                }
-                Divider()
-                    .padding(.vertical, 10)
-                LazyVGrid(
-                    columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
-                    spacing: 12
-                ) {
-                    // CPU：iOS 读不到 CPU 温度，显示系统热状态文字。
-                    dataCell("CPU", connected ? controller.phoneThermal.rawValue : "--")
-                    // 电量：明确标注“电量”+ %，不要让人误会是温度。
-                    dataCell("电量", connected ? (controller.batteryLevel >= 0 ? "\(controller.batteryLevel)%" : "--") : "--")
-                    dataCell("热面", connected ? "\(state.hotSurfaceTemperature)°C" : "--")
-                    dataCell("转速", connected ? "\(state.speed) RPM" : "--")
-                    // 制冷 / 风扇强度用运行档位百分比。
-                    dataCell("制冷强度", connected ? "\(state.coldPercent)%" : "--")
-                    dataCell("风扇强度", connected ? "\(state.windPercent)%" : "--")
-                }
-            }
-        }
-    }
-
-    private func dataCell(_ title: String, _ value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Color.b9xTextDim)
-            Text(value)
-                .font(.headline.monospaced())
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-    }
-
-    private var quickControls: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("快捷控制")
-                .font(.title3.bold())
-                .foregroundStyle(.primary)
-            HStack(spacing: 12) {
-                NavigationLink {
-                    LEDView()
-                } label: {
-                    quickCard(
-                        icon: "lightbulb",
-                        title: "灯光",
-                        subtitle: connected
-                            ? (state.lightOn ? (B9XProtocol.ledTypes[state.ledType] ?? "开启") : "关闭")
-                            : "--"
-                    )
-                }
-                NavigationLink {
-                    ProtectionView()
-                } label: {
-                    quickCard(
-                        icon: "shield",
-                        title: "保护机制",
-                        subtitle: connected ? protectionSubtitle : "--"
-                    )
-                }
-                NavigationLink {
-                    TimerView()
-                } label: {
-                    quickCard(
-                        icon: "timer",
-                        title: "定时关机",
-                        subtitle: connected
-                            ? (state.timedShutdownRunning ? "剩余 \(remainingMinutes) 分钟" : "未开启")
-                            : "--"
-                    )
-                }
-            }
-        }
-    }
-
-    /// 双保护：低温保护已开 + 高温保护位；单保护：只开一个；都不开：已关闭。
-    private var protectionSubtitle: String {
-        let cold = state.coldProtectionEnabled
-        let hot = state.hotProtectionEnabled
-        if cold && hot { return "双保护正常" }
-        if cold || hot { return "单保护" }
-        return "已关闭"
-    }
-
-    /// 剩余分钟：设备倒计时以秒存，分钟制倒计时直接取分钟数。
-    private var remainingMinutes: Int {
-        if state.timedCountdownInMinute {
-            return state.timeCountdown
-        }
-        return (state.timeCountdown + 59) / 60
-    }
-
-    private func quickCard(icon: String, title: String, subtitle: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(Color.b9xAccentLight)
-            Text(title)
-                .font(.subheadline.bold())
-                .foregroundStyle(.primary)
-            Text(subtitle)
-                .font(.caption)
-                .foregroundStyle(Color.b9xTextDim)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(Color.b9xCard)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-    }
 }
 
 // ------------------------------------------------------------ 超频体验行
@@ -416,7 +123,7 @@ enum FreeCurve {
     }
 }
 
-/// 散热模式卡片：当前模式 + 6 个按钮 + 按当前模式的专属行；设备页与设备功能页共用。
+/// 散热模式卡片：当前模式 + 6 个按钮 + 按当前模式的专属行；首页与设备功能页共用。
 /// 当前模式一律从设备状态推导（Freeze > 软件温控环路 > runMode/pending），不存本地。
 struct ModeGridView: View {
     @EnvironmentObject private var controller: CoolerController
@@ -850,5 +557,242 @@ struct TimerView: View {
             return state.timeCountdown
         }
         return (state.timeCountdown + 59) / 60
+    }
+}
+
+// ------------------------------------------------------------ 设备功能（散热模式页）
+// 原在 MoreView.swift，首页“更多 ›”与模式卡“编辑”都链到这里，随模式卡一起搬过来。
+
+struct DeviceFeaturesView: View {
+    @EnvironmentObject private var controller: CoolerController
+    @State private var curve: [Int] = FreeCurve.defaults
+    @State private var coldSlider: Double = 100
+    @State private var windSlider: Double = 4500
+
+    private var state: CoolerState { controller.state }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                ModeGridView(isInFeaturesPage: true)
+
+                targetStepperCard
+                slidersCard
+
+                NavigationLink {
+                    LEDView()
+                } label: {
+                    GlassCard {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("灯光")
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text("10 种灯效 · 颜色与速度可调")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.b9xTextDim)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(Color.b9xTextDim)
+                        }
+                    }
+                }
+
+                curveCard
+                expertCard
+
+                NavigationLink {
+                    ProtectionView()
+                } label: {
+                    GlassCard {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("保护机制")
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text("低温保护 · 高温保护状态")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.b9xTextDim)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(Color.b9xTextDim)
+                        }
+                    }
+                }
+
+                NavigationLink {
+                    TimerView()
+                } label: {
+                    GlassCard {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("定时关机")
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(state.timedShutdownRunning ? "运行中，剩余 \(remainingMinutes) 分钟" : "未开启")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.b9xTextDim)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(Color.b9xTextDim)
+                        }
+                    }
+                }
+
+                OverclockExperienceRow()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
+        }
+        .navigationTitle("设备功能")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            curve = FreeCurve.effectiveLevels(from: state)
+            coldSlider = Double(state.coldLevel)
+            windSlider = Double(state.windLevel)
+        }
+        .onChange(of: state.coldLevel) { _, newValue in
+            coldSlider = Double(newValue)
+        }
+        .onChange(of: state.windLevel) { _, newValue in
+            windSlider = Double(newValue)
+        }
+    }
+
+    private var remainingMinutes: Int {
+        if state.timedCountdownInMinute {
+            return state.timeCountdown
+        }
+        return (state.timeCountdown + 59) / 60
+    }
+
+    /// 目标温度步进器（-20...16，点 +/- 立即发帧，本地优先不弹回）。
+    private var targetStepperCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Stepper(
+                    "目标温度 \(state.coolerTargetC)°C",
+                    value: Binding(
+                        get: { state.coolerTargetC },
+                        set: {
+                            markManualOverride()
+                            controller.setTargetTemperature($0)
+                        }
+                    ),
+                    in: -20...16
+                )
+                .foregroundStyle(.primary)
+                Text("目标温控环路的目标温度；智能变频下也会按此目标调节。")
+                    .font(.caption)
+                    .foregroundStyle(Color.b9xTextDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// 制冷 / 风量滑块：拖动中实时生效、松手确认、数值与 thumb 实时同步，不显示电压。
+    private var slidersCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                ValueSlider(
+                    title: "制冷强度",
+                    value: $coldSlider,
+                    range: 0...175,
+                    step: 1,
+                    display: "制冷强度 \(Int(coldSlider)) · \(Int(coldSlider) * 100 / 175)%",
+                    onChange: { controller.setColdLevel(Int($0)) },
+                    onEditingEnded: {
+                        markManualOverride()
+                        controller.setColdLevel(Int($0))
+                    }
+                )
+                ValueSlider(
+                    title: "风量",
+                    value: $windSlider,
+                    range: 4000...5700,
+                    step: 100,
+                    display: "风量 \(Int(windSlider)) · \(Int(windSlider) * 100 / 5700)%",
+                    onChange: { controller.setWindLevelViaMode(Int($0)) },
+                    onEditingEnded: {
+                        markManualOverride()
+                        controller.setWindLevelViaMode(Int($0))
+                    }
+                )
+            }
+        }
+    }
+
+    /// 自定义温度曲线：9 点温度 -12...12，档位 1...8，改完立即发曲线帧。
+    private var curveCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("自定义温度曲线（9 段）")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text("每段对应一个温度点的制冷档位，档位 1...8，值越大越冷。仅 B9X 支持。")
+                    .font(.caption)
+                    .foregroundStyle(Color.b9xTextDim)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(0..<9, id: \.self) { i in
+                    HStack {
+                        Text("\(FreeCurve.temperatures[i])°C")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(Color.b9xTextDim)
+                            .frame(width: 44, alignment: .leading)
+                        Slider(
+                            value: Binding(
+                                get: { Double(curve[i]) },
+                                set: { curve[i] = Int($0) }
+                            ),
+                            in: 1...8,
+                            step: 1,
+                            onEditingChanged: { editing in
+                                if !editing {
+                                    markManualOverride()
+                                    controller.setCustomCurve(curve)
+                                }
+                            }
+                        )
+                        .tint(.b9xAccent)
+                        Text("\(curve[i])")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.primary)
+                            .frame(width: 20, alignment: .trailing)
+                    }
+                }
+                Button {
+                    markManualOverride()
+                    controller.setCustomCurve(curve)
+                } label: {
+                    Text("应用曲线")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.b9xAccent)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+        }
+    }
+
+    /// 专家模式入口：B9X 不提供，仅保留入口。
+    private var expertCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle("专家模式", isOn: Binding(
+                    get: { state.experimentalModeOn },
+                    set: { controller.setExperimentalMode(enabled: $0) }
+                ))
+                .foregroundStyle(.primary)
+                Text("B9X 不提供专家模式，仅保留入口；原版 App 也不使用此模式。")
+                    .font(.caption)
+                    .foregroundStyle(Color.b9xTextDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }

@@ -36,15 +36,31 @@ def collect_sources():
     return sorted(sources)
 
 
+def collect_firmware():
+    """固件镜像（B9XController/Firmware/*.bin），进 Resources 相位。"""
+    firmware_dir = os.path.join(APP_DIR, "Firmware")
+    if not os.path.isdir(firmware_dir):
+        return []
+    return sorted(
+        os.path.join("B9XController", "Firmware", f)
+        for f in os.listdir(firmware_dir)
+        if f.endswith(".bin")
+    )
+
+
 def main():
     sources = collect_sources()
     assert sources, "no swift sources found"
+    firmware = collect_firmware()
 
     # ---- UUID 分配 ----
     ids = {}
     for s in sources:
         ids["buildfile:" + s] = uid("buildfile:" + s)
         ids["fileref:" + s] = uid("fileref:" + s)
+    for f in firmware:
+        ids["buildfile:" + f] = uid("buildfile:" + f)
+        ids["fileref:" + f] = uid("fileref:" + f)
     extra_refs = {
         "Info.plist": "Info.plist",
         "Assets.xcassets": "Assets.xcassets",
@@ -64,7 +80,8 @@ def main():
                 "config-target-debug", "config-target-release",
                 "group-main", "group-app", "group-products",
                 "group-Protocol", "group-Models", "group-BLE",
-                "group-Controller", "group-UI", "group-Intents"]:
+                "group-Controller", "group-UI", "group-Intents",
+                "group-Firmware"]:
         ids[key] = uid(key)
 
     def ref(kind, key, comment=""):
@@ -95,6 +112,10 @@ def main():
         "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* Assets.xcassets */;\n\t\t}" % ids["fileref:Assets.xcassets"])
     add(ids["buildfile:LaunchScreen.storyboard"], "LaunchScreen.storyboard in Resources",
         "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* LaunchScreen.storyboard */;\n\t\t}" % ids["fileref:LaunchScreen.storyboard"])
+    for f in firmware:
+        name = os.path.basename(f)
+        add(ids["buildfile:" + f], name + " in Resources",
+            "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* %s */;\n\t\t}" % (ids["fileref:" + f], name))
     for fw in ["CoreBluetooth.framework", "AppIntents.framework"]:
         add(ids["buildfile:" + fw], fw + " in Frameworks",
             "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* %s */;\n\t\t}" % (ids["fileref:" + fw], fw))
@@ -110,6 +131,10 @@ def main():
         "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = folder.assetcatalog;\n\t\t\tpath = Assets.xcassets;\n\t\t\tsourceTree = \"<group>\";\n\t\t}")
     add(ids["fileref:LaunchScreen.storyboard"], "LaunchScreen.storyboard",
         "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = file.storyboard;\n\t\t\tpath = LaunchScreen.storyboard;\n\t\t\tsourceTree = \"<group>\";\n\t\t}")
+    for f in firmware:
+        name = os.path.basename(f)
+        add(ids["fileref:" + f], name,
+            "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = file;\n\t\t\tpath = %s;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % name)
     for fw in ["CoreBluetooth.framework", "AppIntents.framework"]:
         add(ids["fileref:" + fw], fw,
             "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = wrapper.framework;\n\t\t\tname = %s;\n\t\t\tpath = System/Library/Frameworks/%s;\n\t\t\tsourceTree = SDKROOT;\n\t\t}" % (fw, fw))
@@ -123,8 +148,13 @@ def main():
     )
     add(ids["frameworks-phase"], "Frameworks",
         "{\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n%s\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % fw_files)
+    res_files = ",\n".join(
+        ["\t\t\t\t%s /* Assets.xcassets in Resources */" % ids["buildfile:Assets.xcassets"],
+         "\t\t\t\t%s /* LaunchScreen.storyboard in Resources */" % ids["buildfile:LaunchScreen.storyboard"]]
+        + ["\t\t\t\t%s /* %s in Resources */" % (ids["buildfile:" + f], os.path.basename(f)) for f in firmware]
+    )
     add(ids["resources-phase"], "Resources",
-        "{\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t%s /* Assets.xcassets in Resources */,\n\t\t\t\t%s /* LaunchScreen.storyboard in Resources */,\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % (ids["buildfile:Assets.xcassets"], ids["buildfile:LaunchScreen.storyboard"]))
+        "{\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n%s\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % res_files)
     src_files = ",\n".join(
         "\t\t\t\t%s /* %s in Sources */" % (ids["buildfile:" + s], os.path.basename(s))
         for s in sources
@@ -140,8 +170,15 @@ def main():
         )
         add(ids["group-" + gname], gname,
             "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n%s\n\t\t\t);\n\t\t\tpath = %s;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % (children, gname))
+    if firmware:
+        fw_children = ",\n".join(
+            "\t\t\t\t%s /* %s */" % (ids["fileref:" + f], os.path.basename(f))
+            for f in firmware
+        )
+        add(ids["group-Firmware"], "Firmware",
+            "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n%s\n\t\t\t);\n\t\t\tpath = Firmware;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % fw_children)
     app_children = []
-    for gname in ["Protocol", "Models", "BLE", "Controller", "UI", "Intents"]:
+    for gname in ["Protocol", "Models", "BLE", "Controller", "UI", "Intents"] + (["Firmware"] if firmware else []):
         app_children.append("\t\t\t\t%s /* %s */," % (ids["group-" + gname], gname))
     for s in top_level:
         app_children.append("\t\t\t\t%s /* %s */," % (ids["fileref:" + s], os.path.basename(s)))

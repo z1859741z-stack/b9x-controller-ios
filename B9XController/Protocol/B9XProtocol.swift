@@ -1,4 +1,19 @@
+import CoreBluetooth
 import Foundation
+
+/// 单条 GATT 请求（DEEP-DIVE §2.2）。
+/// `characteristic` 为 nil 表示用当前通道的默认写特征；
+/// `isOTA` 为 true 时写 Telink OTA 特征，忽略 `characteristic`。
+struct GATTRequest {
+    var characteristic: CBCharacteristic?
+    var isOTA: Bool = false
+    var payload: Data
+    var delayAfterMilliseconds: Int = 0
+    var requiresFreezeOff: Bool = false
+    var responseRequired: Bool = false
+    var isQuery: Bool = false
+    var isRead: Bool = false
+}
 
 /// B9X 散热器 BLE 协议编解码（v2）。
 ///
@@ -59,10 +74,16 @@ struct LedEventData {
 
 enum B9XProtocol {
     // ------------------------------------------------------------ GATT 常量
+    // 全部走 Secrets（混淆存储）；数值与原来一致，
+    // 写/通知分工以原版安卓 + Flutter 三处实测为准，
+    // 详见 Secrets.swift 头部注释。
 
-    static let serviceUUID = "0000FFE0-0000-1000-8000-00805F9B34FB"
-    static let writeCharUUID = "0000FFE1-0000-1000-8000-00805F9B34FB"
-    static let notifyCharUUID = "0000FFE4-0000-1000-8000-00805F9B34FB"
+    /// 飞智主服务。
+    static var serviceUUID: String { Secrets.flydigiServiceUUID }
+    /// 飞智写特征（命令上行）。
+    static var writeCharUUID: String { Secrets.flydigiWriteUUID }
+    /// 飞智通知特征（状态帧下行）。
+    static var notifyCharUUID: String { Secrets.flydigiNotifyUUID }
 
     /// 扫描时用于过滤的广播名。
     static let deviceName = "Flydigi B9X"

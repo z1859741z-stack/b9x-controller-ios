@@ -161,7 +161,7 @@
 
 ## 9. 官方包佐证（飞智游戏厅 7.2.11.2，jadx 反编译，仅佐证；下一轮优化再用）
 
-- 官方原生 SDK `com.flydigi.sdk.waspwing`（classes2.dex）+ Dart 层（libapp.so，AOT，未深拆——字符串/符号级已探，blutter 未装，连接逻辑本就在 dex 层）。
+- 官方原生 SDK `com.flydigi.sdk.waspwing`（classes2.dex）+ Dart 层（libapp.so，AOT，2026-11-17 已用 blutter 拆完，见 §10.7；连接逻辑本就在 dex 层，Dart 侧只是薄壳）。
 - **连接流程**：`connectGatt(autoConnect=false, transport=2 LE, phy=3 1M+2M)`；仅当状态为断开才连；连接超时 5 秒（超时只复位状态、不主动 close）；连上 → `discoverServices()`；发现服务 → 取 FFE0 服务、找 FFE1/FFE4 → `setCharacteristicNotification(true)` + 写 CCCD `ENABLE_NOTIFICATION_VALUE`；**无 MTU/连接优先级请求、无主动 readCharacteristic**；CCCD 写完后 SDK 层无后续动作（初始化帧由 Dart 层经 method channel 驱动，顺序未从 AOT 恢复）。
 - **断开**：`disconnect()` + `gatt.close()` + 置空；**每次断开都调隐藏 API `BluetoothGatt.refresh()` 清 GATT 缓存**（Android 特有；iOS 无等价物，v2 以“取消连接＋特征置空＋重新发现”对应）。
 - **无自动重连、无跨手机占线检测、无抢连接机制**：SDK 层 `connectWith` 只拦“已连着另一台设备”；dex 全文无“被占用/已被连接”文案。BLE 本身无跨手机占线查询接口——v2 的“4 秒收不到 0x13 帧就提示可能被占着”做法是唯一可行的，与官方能力边界一致。
@@ -203,9 +203,9 @@
 - 串行；写前保证 ≥30ms 间隔（不足则 `Thread.sleep(35 - elapsed)`）；`writeCharacteristic` 返回 false 就地重试最多 11 次；每次写完挂 100ms 超时 runnable，超时重试 1 次、再超时丢弃并推进队列。
 - 写类型官方 NO_RESPONSE（`setWriteType(1)`）；冰环 WITH_RESPONSE（2）。两家线上都通，FFE1 两种都接受（已写入 §9，不重复）。
 
-### 10.5 未恢复的部分
-- **`runFetchLoop`（Kotlin 协程，`AbstractDataInteractionController.kt:55`）**：jadx 报 `JadxOverflowException`，循环体无法从反编译输出恢复；调用点也未在 dex 源码里找到。已知 `[0x13]` 由 `openReadNotification` 显式触发、原生无定时器；该协程可能是 Dart 侧轮询的补充或固件拉取循环，**间隔与触发条件未恢复**。下一轮如需精确值，可用 androguard 读该方法字节码或等 blutter 的 Dart 侧结果（Dart 侧若用 Timer.periodic 调 openReadNotification，间隔即在 Dart 代码里）。
-- **Dart 层（libapp.so，AOT）**：blutter 已启动（`~/workspace/.cache/blutter-repo`，venv `~/workspace/.cache/blutter-venv`，日志 `/tmp/blutter-run.log`，输出 `~/workspace/.cache/blutter-out`）。blutter 从 Flutter 引擎检测到 Dart **3.9.2**（早先字符串猜的 3.3.4 是错的，已纠正），正在克隆 Dart SDK 3.9.2 源码并编译专用解析器。工具链已齐：g++ 13.3.0、cmake 3.28.3、ninja 1.13.2（pip 装，apt 无候选）、pyelftools/requests。构建耗时较长（Dart VM 编译，4 核），跑完后从 `objs.txt`/`pp.txt`/`asm/` 恢复 Dart 侧连接时序（init 调用顺序、重连定时器、超时处理），再补进本节。
+### 10.5 未恢复的部分（已由 10.7 解决，见下；本节留档）
+- **`runFetchLoop`（Kotlin 协程，`AbstractDataInteractionController.kt:55`）**：jadx 报 `JadxOverflowException`，循环体无法从反编译输出恢复；调用点也未在 dex 源码里找到。已知 `[0x13]` 由 `openReadNotification` 显式触发、原生无定时器；该协程可能是 Dart 侧轮询的补充或固件拉取循环，**间隔与触发条件未恢复**。下一轮如需精确值，可用 androguard 读该方法字节码或等 blutter 的 Dart 侧结果（Dart 侧若用 Timer.periodic 调 openReadNotification，间隔即在 Dart 代码里）。→ **已解决，见 10.7（4）：它不是轮询循环，是写队列消费泵，无间隔；`[0x13]` 无任何周期发送方。**
+- **Dart 层已拆完（2026-11-17，见 10.7）**：libapp.so 经 blutter 提取，输出 `~/workspace/.cache/blutter-out`，日志 `~/workspace/.cache/blutter-run.log`。blutter 从 Flutter 引擎检测到 Dart **3.9.2**（早先字符串猜的 3.3.4 是错的，已纠正）。
 - 止步点记录：pip 无 blutter 包（须 git clone 源码）；apt 装不上 ninja（须 pip 装 `ninja` 包）；libflutter.so 须从 APK 另行解出（首次解包只取了 libapp.so）。
 
 ### 10.6 对下一轮 v2.x 的直接启示（待用户验收反馈后排期）
@@ -215,3 +215,27 @@
 4. 连接失败/超时只给文字提示、不自动重试——与 v2 现状一致，不改。
 5. 不配对、不发 MTU/优先级——v2 已是这样，不改。
 6. 若 blutter 恢复出 Dart 侧 init 顺序与 v2 §3.5 有出入，以 Dart 侧为准补齐。
+
+### 10.7 Dart 层拆解结果（2026-11-17 blutter 已跑完，补 10.5 的坑）
+
+来源：飞智游戏厅 7.2.11.2，libapp.so（Flutter/Dart 3.9.2，snapshot 97ff04a728735e6b6b098bdf983faaba，flags product/compressed-pointers）。blutter 提取完成：输出 `~/workspace/.cache/blutter-out`（69M，697 个 .dart 反汇编 + objs.txt/pp.txt + Frida 脚本），日志 `~/workspace/.cache/blutter-run.log`（已从 /tmp 移到 .cache，防重启丢）。工具链补记：blutter 二进制构建需 `libcapstone-dev`（apt update 后才有包）；Dart VM 静态库 `packages/lib/libdartvm3.9.2_android_arm64.a` 在重启前已编完，续跑只补了 blutter 本体（22 步）+ 提取。
+
+**（1）架构定论：Dart 侧是薄壳，BLE 全在原生 dex。** Dart 侧 `package:waspwing` 只有桥接（`WaspwingBridgeImpl`：事件分发 + method channel 调用）与界面/能力表，零 BLE 逻辑。Dart↔原生接口：1 条 MethodChannel（`com.flydigi.waspwing/method`）+ 9 条 EventChannel（`com.flydigi.waspwing/device/{connection,temperature,fan,led,protection,special,timedShutdown}`、`com.flydigi.waspwing/firmware_upgrade`、`com.flydigi.waspwing/scan/event`）+ 扫描状态通道 `com.flydigi.device/scanState`。原生 `WaspwingMethodHandler` 方法表（连接相关）：connectGattWith/disconnect/refreshGatt/isConnected/isDeviceConnected/createBond/removeBond/getBondedDevice/getConnectedDevice/getRemoteDevice/readRemoteRssi/refreshDeviceInfo/requestMacAddress/requestRunModeParams/requestTempHistory/requestLedColor/openReadNotification/ctrlFreezeMode/setRunMode/setQuickSwitchRunMode/setColdLevel/setMaxColdLevel/setSpeedLevel/setExperimentalRunMode/offOnCold/offOnWind/offTempProtect/setLedColor/updateLed/setLightOn/setLightOff/startScan/stopScan/startWchUpgrade/checkOtaReady/resetFlash/writeDeviceId/setNativeTitle/notifyNativeDetailExit/notifyNativeSubPageEnter/notifyNativeSubPageExit/setBackGestureEnabled/openBluetooth/isBluetoothEnabled/isBluetoothSupported/hasBluetoothPermission/openLocationManager/closeBluetooth/readTimedShutdown/updateTimedShutdown。
+
+**（2）Dart 侧 init 顺序（进详情页，`_initDeviceStreamsAfterActiveContext`，async）：** `await setActiveDeviceContext()` → `viewModel.initDeviceInfoStream()` + `addListener(_handleDeviceInfoChange)` → `await refreshDeviceInfo()`（原生：requestMacAddress `[0x24,0x00]` + readTimedShutdown `[0x61]`）。`notifyNativeSubPageEnter` 只在进子页（模式/灯效/曲线）时调，不在详情页入口。顺序与 v2 §3.5 一致，无出入，不用改。原生初始化链（10.3）随后由固件响应驱动。
+
+**（3）勘误 10.3：`openReadNotification` 没有任何调用方。** Dart 全量字符串池（pp.txt）里 `openReadNotification` 出现 0 次——Dart 从不调它；原生 `WaspWingManager` 里也无任何 Handler/Timer 周期调用它。它只以方法 + method-channel case 的形式存在，是本版的死代码。§10.3"只由 Dart 侧经 method channel 显式调用"一句作废。
+
+**（4）勘误 10.5：`runFetchLoop` 没有间隔——它根本不是轮询循环。** jadx 指令 dump（`AbstractDataInteractionController.Y`）显示：mutex 加锁 → `ConcurrentLinkedQueue.poll()` → 取到命令就 `X()` 写出、取不到就回头等锁；全程无 delay/sleep/定时。它是写队列的消费泵（由 `addCommandToQueue` 后 `unlockMutex` 驱动），不是状态轮询器。"间隔未恢复"问题本身不存在。
+
+**（5）全 App Dart 代码零周期轮询。** `Timer.periodic` 出现 0 次；仅 4 处一次性 `Timer`（LED 编辑页 100ms/300ms 防抖、模式控制 800ms、设备列表 16ms），全与连接无关。结论：**官方 7.2.11.2 里没有任何一方周期性发 `[0x13]`**——状态帧靠 FFE1 notify 由设备主动推送（CCCD 使能后即流式上报）。v2 iOS 的 5 秒 `[0x13]` 轮询可能是多余的：下一轮可真机验证——停掉轮询看状态帧是否继续流；若继续流，删轮询（减 BLE 写流量、减写队列占用）；若停流，保留轮询。先验证再改。
+
+**（6）6000 转出处已定：实测转速的显示刻度，不是设定值。** 官方 Dart B9X 能力表（`waspwing_b9.dart`）：ColdLevelOption 风量设定值只有 4000/4500/5700（对应 cold 145/155/175），OverclockLevel 只有 none/level1/level2，最高档（cold 175、wind 5700）为 level2；官方 Dart 与 dex 散热代码里没有任何 6000 设定。6000 只出现在冰环自家代码 `B9xHyperOsIslandSupport.java:676`：转速百分比 = `rpm / 6000.0 * 100`——即 6000 是转速条的满刻度分母。用户说的"超频能到 6000" = Freeze 超频下风扇实测转速可冲到 6000 转附近显示，与 v2 备忘的"wind ±300 容差"一致。无代码改动，答用户时按此口径。
+
+**（7）连接事件与断开（Dart）：** `_handleConnectionEvent` 只做两件事：读事件 map 的 `isConnected` 推入广播流 + 调 `_updateInfo()`（重建 WaspWingInfo）。Dart 侧无自动重连；断开后 UI 层回扫描列表（与 10.2 一致）。dex 基类 `q.java` 另有 `TIMEOUT_BOND = 15000`（配对超时 15 秒，与连接超时 5 秒是两回事）。扫描 Dart 侧无固定时长（startScan 跑到 stopScan 或选设备为止）；`ScanDialogManager` 只有预检 + 状态监听 + show/dismiss。
+
+**（8）对下一轮的新启示（接 10.6）：**
+- 7. 停轮询验证（见（5））：先真机测，确认后再决定删不删 `[0x13]` 轮询。
+- 8. 扫描名字精确匹配（10.6-1）仍有效；Dart 侧扫描无时长限制，iOS 侧扫描超时可自定（建议 10 秒，与 v2 现状对齐，不用抄官方）。
+- 9. `special` 事件通道载荷未解（`_handleSpecialEvent` 存在但载荷不明），暂不作优化依据。
+- 10. `refreshGatt`（原生清 GATT 缓存入口）经 method channel 暴露，iOS 无等价物，仍按 v2 的"取消连接＋特征置空＋重新发现"对应，不改。
