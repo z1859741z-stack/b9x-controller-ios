@@ -45,3 +45,59 @@ jobs:
         with:
           name: B9XController-unsigned-ipa
           path: B9XController-unsigned.ipa
+
+  # 模拟器截图巡游：iPhone 16 Pro Max（iOS 26），跑 UITourTests，
+  # 点遍散热模式各按钮、切遍三个 tab、打开关于页，每步截屏上传。
+  # 模拟器无真机，只能看界面/尺寸/玻璃效果，不能验证真机控制。
+  screenshot:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          ls /Applications/ | grep -i xcode || true
+          latest=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          echo "Using $latest"
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest" || true; fi
+          xcodebuild -version
+          xcrun simctl list devices available | grep -i "iPhone 16 Pro Max" || true
+
+      - name: Run UI tour on simulator
+        run: |
+          xcodebuild test \
+            -project B9XController.xcodeproj \
+            -scheme B9XController \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' \
+            -only-testing:B9XControllerUITests/UITourTests/testTour \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            -derivedDataPath build-sim
+
+      - name: Export screenshots from xcresult
+        if: always()
+        run: |
+          XCRESULT=$(find build-sim/Logs/Test -name '*.xcresult' | head -1)
+          echo "xcresult: $XCRESULT"
+          test -n "$XCRESULT"
+          mkdir -p sim-screenshots
+          python3 tools/export_screenshots.py "$XCRESULT" sim-screenshots || echo "export failed, falling back to xcresult upload"
+          ls -la sim-screenshots/ || true
+          # 兜底：xcresult 本身也上传，截图一定能在里面找到。
+          cp -r "$XCRESULT" sim-screenshots-result.xcresult
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-screenshots
+          path: sim-screenshots
+
+      - name: Upload xcresult (fallback)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-xcresult
+          path: sim-screenshots-result.xcresult

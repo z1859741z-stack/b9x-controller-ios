@@ -48,16 +48,32 @@ def collect_firmware():
     )
 
 
+def collect_uitest_sources():
+    """UI 测试源码（B9XControllerUITests/*.swift），进 UITests target。"""
+    uitest_dir = os.path.join(ROOT, "B9XControllerUITests")
+    if not os.path.isdir(uitest_dir):
+        return []
+    return sorted(
+        os.path.join("B9XControllerUITests", f)
+        for f in os.listdir(uitest_dir)
+        if f.endswith(".swift")
+    )
+
+
 def main():
     sources = collect_sources()
     assert sources, "no swift sources found"
     firmware = collect_firmware()
+    uitest_sources = collect_uitest_sources()
 
     # ---- UUID 分配 ----
     ids = {}
     for s in sources:
         ids["buildfile:" + s] = uid("buildfile:" + s)
         ids["fileref:" + s] = uid("fileref:" + s)
+    for s in uitest_sources:
+        ids["uitest-buildfile:" + s] = uid("uitest-buildfile:" + s)
+        ids["uitest-fileref:" + s] = uid("uitest-fileref:" + s)
     for f in firmware:
         ids["buildfile:" + f] = uid("buildfile:" + f)
         ids["fileref:" + f] = uid("fileref:" + f)
@@ -81,8 +97,12 @@ def main():
                 "group-main", "group-app", "group-products",
                 "group-Protocol", "group-Models", "group-BLE",
                 "group-Controller", "group-UI", "group-Intents",
-                "group-Firmware"]:
+                "group-Firmware",
+                "uitest-target", "uitest-sources-phase",
+                "uitest-configlist", "uitest-config-debug", "uitest-config-release",
+                "uitest-dependency", "uitest-proxy", "group-uitests"]:
         ids[key] = uid(key)
+    ids["fileref:uitest-product"] = uid("fileref:uitest-product")
 
     def ref(kind, key, comment=""):
         return ids[kind + ":" + key]
@@ -108,6 +128,10 @@ def main():
         name = os.path.basename(s)
         add(ids["buildfile:" + s], name + " in Sources",
             "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* %s */;\n\t\t}" % (ids["fileref:" + s], name))
+    for s in uitest_sources:
+        name = os.path.basename(s)
+        add(ids["uitest-buildfile:" + s], name + " in Sources",
+            "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* %s */;\n\t\t}" % (ids["uitest-fileref:" + s], name))
     add(ids["buildfile:Assets.xcassets"], "Assets.xcassets in Resources",
         "{\n\t\t\tisa = PBXBuildFile;\n\t\t\tfileRef = %s /* Assets.xcassets */;\n\t\t}" % ids["fileref:Assets.xcassets"])
     add(ids["buildfile:LaunchScreen.storyboard"], "LaunchScreen.storyboard in Resources",
@@ -125,6 +149,12 @@ def main():
         name = os.path.basename(s)
         add(ids["fileref:" + s], name,
             "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = sourcecode.swift;\n\t\t\tpath = %s;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % name)
+    for s in uitest_sources:
+        name = os.path.basename(s)
+        add(ids["uitest-fileref:" + s], name,
+            "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = sourcecode.swift;\n\t\t\tpath = %s;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % name)
+    add(ids["fileref:uitest-product"], "B9XControllerUITests.xctest",
+        "{\n\t\t\tisa = PBXFileReference;\n\t\t\texplicitFileType = wrapper.cfbundle;\n\t\t\tincludeInIndex = 0;\n\t\t\tpath = B9XControllerUITests.xctest;\n\t\t\tsourceTree = BUILT_PRODUCTS_DIR;\n\t\t}")
     add(ids["fileref:Info.plist"], "Info.plist",
         "{\n\t\t\tisa = PBXFileReference;\n\t\t\tlastKnownFileType = text.plist.xml;\n\t\t\tpath = Info.plist;\n\t\t\tsourceTree = \"<group>\";\n\t\t}")
     add(ids["fileref:Assets.xcassets"], "Assets.xcassets",
@@ -161,6 +191,13 @@ def main():
     )
     add(ids["sources-phase"], "Sources",
         "{\n\t\t\tisa = PBXSourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n%s\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % src_files)
+    if uitest_sources:
+        uitest_src_files = ",\n".join(
+            "\t\t\t\t%s /* %s in Sources */" % (ids["uitest-buildfile:" + s], os.path.basename(s))
+            for s in uitest_sources
+        )
+        add(ids["uitest-sources-phase"], "Sources",
+            "{\n\t\t\tisa = PBXSourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n%s\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t}" % uitest_src_files)
 
     # ---- PBXGroup ----
     for gname, gfiles in groups.items():
@@ -170,6 +207,13 @@ def main():
         )
         add(ids["group-" + gname], gname,
             "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n%s\n\t\t\t);\n\t\t\tpath = %s;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % (children, gname))
+    if uitest_sources:
+        uitest_children = ",\n".join(
+            "\t\t\t\t%s /* %s */" % (ids["uitest-fileref:" + s], os.path.basename(s))
+            for s in uitest_sources
+        )
+        add(ids["group-uitests"], "B9XControllerUITests",
+            "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n%s\n\t\t\t);\n\t\t\tpath = B9XControllerUITests;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % uitest_children)
     if firmware:
         fw_children = ",\n".join(
             "\t\t\t\t%s /* %s */" % (ids["fileref:" + f], os.path.basename(f))
@@ -189,14 +233,27 @@ def main():
         "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n%s\n\t\t\t);\n\t\t\tpath = B9XController;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % "\n".join(app_children))
     add(ids["group-products"], "Products",
         "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\t%s /* B9XController.app */,\n\t\t\t);\n\t\t\tname = Products;\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % ids["fileref:product"])
+    main_children = "\t\t\t\t%s /* B9XController */,\n\t\t\t\t%s /* Products */," % (
+        ids["group-app"], ids["group-products"])
+    if uitest_sources:
+        main_children += "\n\t\t\t\t%s /* B9XControllerUITests */," % ids["group-uitests"]
     add(ids["group-main"], "B9XController",
-        "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\t%s /* B9XController */,\n\t\t\t\t%s /* Products */,\n\t\t\t);\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % (ids["group-app"], ids["group-products"]))
+        "{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n%s\n\t\t\t);\n\t\t\tsourceTree = \"<group>\";\n\t\t}" % main_children)
 
     # ---- PBXNativeTarget ----
     add(ids["target"], "B9XController",
         "{\n\t\t\tisa = PBXNativeTarget;\n\t\t\tbuildConfigurationList = %s /* Build configuration list for PBXNativeTarget \"B9XController\" */;\n\t\t\tbuildPhases = (\n\t\t\t\t%s /* Sources */,\n\t\t\t\t%s /* Frameworks */,\n\t\t\t\t%s /* Resources */,\n\t\t\t);\n\t\t\tbuildRules = (\n\t\t\t);\n\t\t\tdependencies = (\n\t\t\t);\n\t\t\tname = B9XController;\n\t\t\tproductName = B9XController;\n\t\t\tproductReference = %s /* B9XController.app */;\n\t\t\tproductType = \"com.apple.product-type.application\";\n\t\t}" % (
             ids["configlist-target"], ids["sources-phase"], ids["frameworks-phase"],
             ids["resources-phase"], ids["fileref:product"]))
+    if uitest_sources:
+        add(ids["uitest-proxy"], "PBXContainerItemProxy",
+            "{\n\t\t\tisa = PBXContainerItemProxy;\n\t\t\tcontainerPortal = %s /* Project object */;\n\t\t\tproxyType = 1;\n\t\t\tremoteGlobalIDString = %s;\n\t\t\tremoteInfo = B9XController;\n\t\t}" % (ids["project"], ids["target"]))
+        add(ids["uitest-dependency"], "PBXTargetDependency",
+            "{\n\t\t\tisa = PBXTargetDependency;\n\t\t\ttarget = %s /* B9XController */;\n\t\t\ttargetProxy = %s /* PBXContainerItemProxy */;\n\t\t}" % (ids["target"], ids["uitest-proxy"]))
+        add(ids["uitest-target"], "B9XControllerUITests",
+            "{\n\t\t\tisa = PBXNativeTarget;\n\t\t\tbuildConfigurationList = %s /* Build configuration list for PBXNativeTarget \"B9XControllerUITests\" */;\n\t\t\tbuildPhases = (\n\t\t\t\t%s /* Sources */,\n\t\t\t);\n\t\t\tbuildRules = (\n\t\t\t);\n\t\t\tdependencies = (\n\t\t\t\t%s /* PBXTargetDependency */,\n\t\t\t);\n\t\t\tname = B9XControllerUITests;\n\t\t\tproductName = B9XControllerUITests;\n\t\t\tproductReference = %s /* B9XControllerUITests.xctest */;\n\t\t\tproductType = \"com.apple.product-type.ui-testing\";\n\t\t}" % (
+                ids["uitest-configlist"], ids["uitest-sources-phase"],
+                ids["uitest-dependency"], ids["fileref:uitest-product"]))
 
     # ---- XCBuildConfiguration ----
     project_debug = {
@@ -306,6 +363,28 @@ def main():
     config(ids["config-project-release"], "Release", project_release)
     config(ids["config-target-debug"], "Debug", target_debug)
     config(ids["config-target-release"], "Release", target_release)
+    if uitest_sources:
+        uitest_common = {
+            "CODE_SIGN_IDENTITY": '""',
+            "CODE_SIGN_STYLE": "Automatic",
+            "CODE_SIGNING_ALLOWED": "NO",
+            "CODE_SIGNING_REQUIRED": "NO",
+            "GENERATE_INFOPLIST_FILE": "YES",
+            "IPHONEOS_DEPLOYMENT_TARGET": DEPLOYMENT_TARGET,
+            "LD_RUNPATH_SEARCH_PATHS": '("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks")',
+            "PRODUCT_BUNDLE_IDENTIFIER": "com.enginecore.plus.uitests",
+            "PRODUCT_NAME": '"$(TARGET_NAME)"',
+            "SDKROOT": "iphoneos",
+            "SWIFT_VERSION": "5.0",
+            "TARGETED_DEVICE_FAMILY": "1",
+            "TEST_TARGET_NAME": "B9XController",
+        }
+        uitest_debug = dict(uitest_common)
+        uitest_debug["ENABLE_TESTABILITY"] = "YES"
+        uitest_debug["SWIFT_ACTIVE_COMPILATION_CONDITIONS"] = "DEBUG"
+        uitest_release = dict(uitest_common)
+        config(ids["uitest-config-debug"], "Debug", uitest_debug)
+        config(ids["uitest-config-release"], "Release", uitest_release)
 
     # ---- XCConfigurationList ----
     for list_id, name, debug_id, release_id in [
@@ -316,12 +395,18 @@ def main():
     ]:
         add(list_id, name,
             "{\n\t\t\tisa = XCConfigurationList;\n\t\t\tbuildConfigurations = (\n\t\t\t\t%s /* Debug */,\n\t\t\t\t%s /* Release */,\n\t\t\t);\n\t\t\tdefaultConfigurationIsVisible = 0;\n\t\t\tdefaultConfigurationName = Release;\n\t\t}" % (debug_id, release_id))
+    if uitest_sources:
+        add(ids["uitest-configlist"], "Build configuration list for PBXNativeTarget \"B9XControllerUITests\"",
+            "{\n\t\t\tisa = XCConfigurationList;\n\t\t\tbuildConfigurations = (\n\t\t\t\t%s /* Debug */,\n\t\t\t\t%s /* Release */,\n\t\t\t);\n\t\t\tdefaultConfigurationIsVisible = 0;\n\t\t\tdefaultConfigurationName = Release;\n\t\t}" % (ids["uitest-config-debug"], ids["uitest-config-release"]))
 
     # ---- PBXProject ----
+    project_targets = "\t\t\t\t%s /* B9XController */,\n" % ids["target"]
+    if uitest_sources:
+        project_targets += "\t\t\t\t%s /* B9XControllerUITests */,\n" % ids["uitest-target"]
     add(ids["project"], "Project object",
-        "{\n\t\t\tisa = PBXProject;\n\t\t\tattributes = {\n\t\t\t\tLastUpgradeCheck = 2600;\n\t\t\t\tTargetAttributes = {\n\t\t\t\t\t%s = {\n\t\t\t\t\t\tCreatedOnToolsVersion = 26.0;\n\t\t\t\t\t};\n\t\t\t\t};\n\t\t\t};\n\t\t\tbuildConfigurationList = %s /* Build configuration list for PBXProject \"B9XController\" */;\n\t\t\tcompatibilityVersion = \"Xcode 16.0\";\n\t\t\tdevelopmentRegion = zh_CN;\n\t\t\thasScannedForEncodings = 0;\n\t\t\tknownRegions = (\n\t\t\t\tzh_CN,\n\t\t\t\ten,\n\t\t\t\tBase,\n\t\t\t);\n\t\t\tmainGroup = %s;\n\t\t\tproductRefGroup = %s /* Products */;\n\t\t\tprojectDirPath = \"\";\n\t\t\tprojectRoot = \"\";\n\t\t\ttargets = (\n\t\t\t\t%s /* B9XController */,\n\t\t\t);\n\t\t}" % (
+        "{\n\t\t\tisa = PBXProject;\n\t\t\tattributes = {\n\t\t\t\tLastUpgradeCheck = 2600;\n\t\t\t\tTargetAttributes = {\n\t\t\t\t\t%s = {\n\t\t\t\t\t\tCreatedOnToolsVersion = 26.0;\n\t\t\t\t\t};\n\t\t\t\t};\n\t\t\t};\n\t\t\tbuildConfigurationList = %s /* Build configuration list for PBXProject \"B9XController\" */;\n\t\t\tcompatibilityVersion = \"Xcode 16.0\";\n\t\t\tdevelopmentRegion = zh_CN;\n\t\t\thasScannedForEncodings = 0;\n\t\t\tknownRegions = (\n\t\t\t\tzh_CN,\n\t\t\t\ten,\n\t\t\t\tBase,\n\t\t\t);\n\t\t\tmainGroup = %s;\n\t\t\tproductRefGroup = %s /* Products */;\n\t\t\tprojectDirPath = \"\";\n\t\t\tprojectRoot = \"\";\n\t\t\ttargets = (\n%s\t\t\t);\n\t\t}" % (
             ids["target"], ids["configlist-project"], ids["group-main"],
-            ids["group-products"], ids["target"]))
+            ids["group-products"], project_targets))
 
     # ---- 写出 project.pbxproj ----
     os.makedirs(PROJ_DIR, exist_ok=True)
@@ -340,6 +425,37 @@ def main():
 
     # ---- Scheme ----
     os.makedirs(SCHEME_DIR, exist_ok=True)
+    uitest_build_entry = ""
+    uitest_testables = ""
+    if uitest_sources:
+        uitest_build_entry = """
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "%s"
+               BuildableName = "B9XControllerUITests.xctest"
+               BlueprintName = "B9XControllerUITests"
+               ReferencedContainer = "container:B9XController.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>""" % ids["uitest-target"]
+        uitest_testables = """
+      <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "%s"
+               BuildableName = "B9XControllerUITests.xctest"
+               BlueprintName = "B9XControllerUITests"
+               ReferencedContainer = "container:B9XController.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>""" % ids["uitest-target"]
     scheme = """<?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "2600"
@@ -362,7 +478,7 @@ def main():
                BlueprintName = "B9XController"
                ReferencedContainer = "container:B9XController.xcodeproj">
             </BuildableReference>
-         </BuildActionEntry>
+         </BuildActionEntry>%s
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -370,7 +486,7 @@ def main():
       selectedDebuggerIdentifier = "Xcode.Debugger.Foundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.Debugger.Foundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
-      shouldAutocreateTestPlan = "YES">
+      shouldAutocreateTestPlan = "YES">%s
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -398,7 +514,7 @@ def main():
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>
-""" % ids["target"]
+""" % (ids["target"], uitest_build_entry, uitest_testables)
     with open(os.path.join(SCHEME_DIR, "B9XController.xcscheme"), "w", encoding="utf-8") as f:
         f.write(scheme)
 
