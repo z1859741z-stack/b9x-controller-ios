@@ -57,8 +57,10 @@ struct ContentView: View {
 
             // 液态玻璃底栏（原版截图实测，440pt @3x）：
             // 栏宽 401pt（91.2%）、左右边距各 19.3pt、栏高约 69pt、全胶囊、
-            // 底边距 20pt；选中胶囊 127×61pt、浅蓝 #D2DFFF，
-            // 选中图标/文字蓝 #025FD6，描边图标 22pt，文字 11pt。
+            // 底边距 20pt；选中胶囊 127×60pt、浅蓝 #D2DFFF，
+            // 选中图标/文字蓝 #025FD6，描边图标 20pt、文字 11pt。
+            // 图标 20pt 是实测反推：原版房子字形 73×64px、人物 52×55px、
+            // 六边形 59×67px，恰好是 22pt 的 20/22（0.91 倍），22pt 偏大 10%。
             // 胶囊在栏内偏上（上留白约 1pt、下留白约 7pt，照原版实测）。
             // 底栏专用液态玻璃（tabBarGlass），连接开关已改回重写版系统 Toggle，不共用。
             HStack(spacing: 0) {
@@ -70,7 +72,7 @@ struct ContentView: View {
                     } label: {
                         VStack(spacing: 4) {
                             Image(systemName: item.icon)
-                                .font(.system(size: 22, weight: .semibold))
+                                .font(.system(size: 20, weight: .semibold))
                             Text(item.title)
                                 .font(.system(size: 11, weight: tab == item ? .semibold : .regular))
                         }
