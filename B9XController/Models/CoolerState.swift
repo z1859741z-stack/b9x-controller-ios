@@ -57,7 +57,7 @@ struct CoolerState {
     /// 软件温控环路模式：0=无，100=电池温控，101=目标温控。
     var softwareThermalMode: Int = B9XProtocol.thermalModeNone
     var batteryTargetC: Int = 20
-    var coolerTargetC: Int = -20
+    var coolerTargetC: Int = 0
     /// 当前选中的智能预设：0=静音，2=极寒（默认极寒）。
     var smartPreset: Int = 2
     /// 当前选中的手动预设：0=节能，1=强劲，2=极强（默认极强）。

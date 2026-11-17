@@ -131,11 +131,19 @@ struct ModeGridView: View {
     @State private var showOverclockWarning = false
     @State private var showBatteryTargetSheet = false
     @State private var showCoolerTargetSheet = false
+    /// 本地乐观选中态：点按立即更新 UI，不等设备回包；设备确认态（currentMode）
+    /// 追上后自动清掉，超时 5 秒未确认也回落到设备真实状态。
+    @State private var localMode: DeviceMode?
+    @State private var dispatchTask: Task<Void, Never>?
+    @State private var reconcileTask: Task<Void, Never>?
 
     /// 在设备功能页里时为 true：曲线编辑器就在下方，“编辑”按钮隐藏。
     var isInFeaturesPage = false
 
     private var state: CoolerState { controller.state }
+
+    /// 界面显示用的模式：本地乐观态优先，设备确认态兜底。
+    private var displayMode: DeviceMode { localMode ?? currentMode }
 
     private var currentMode: DeviceMode {
         if state.freezeMode { return .overclock }
@@ -151,7 +159,7 @@ struct ModeGridView: View {
     }
 
     private var subtitle: String {
-        switch currentMode {
+        switch displayMode {
         case .smart:
             return state.smartPreset == 0 ? "静音 · 智能调节" : "极寒 · 智能调节"
         case .manual:
@@ -178,7 +186,7 @@ struct ModeGridView: View {
                     Circle()
                         .fill(Color.b9xAccentLight)
                         .frame(width: 8, height: 8)
-                    Text(currentMode.name)
+                    Text(displayMode.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
                 }
@@ -195,7 +203,7 @@ struct ModeGridView: View {
                             selectMode(mode)
                         } label: {
                             HStack(spacing: 4) {
-                                if currentMode == mode {
+                                if displayMode == mode {
                                     Image(systemName: "checkmark")
                                         .font(.caption.bold())
                                 }
@@ -204,16 +212,18 @@ struct ModeGridView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(currentMode == mode ? Color.b9xAccent : Color.b9xCard2)
-                            .foregroundStyle(currentMode == mode ? .white : .primary)
+                            .background(displayMode == mode ? Color.b9xAccent : Color.b9xCard2)
+                            .foregroundStyle(displayMode == mode ? .white : .primary)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
+                        .accessibilityIdentifier("mode.\(mode.rawValue)")
                     }
                 }
+                .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.8), value: displayMode)
 
                 modeExclusiveRow
 
-                if currentMode == .overclock {
+                if displayMode == .overclock {
                     Divider()
                     Text("已开启")
                         .font(.subheadline)
@@ -226,12 +236,19 @@ struct ModeGridView: View {
             Button("取消", role: .cancel) {}
             Button("开启超频") {
                 overclockAck = true
-                controller.setSoftwareThermalMode(0)
-                controller.setFreezeEnabled(true)
+                setLocalMode(.overclock)
+                dispatchMode(.overclock)
                 markManualOverride()
             }
         } message: {
             Text("超频会让散热器以最大功率运行（风量最高 5700 RPM），会明显发热、耗电增加，请确保使用 30W 以上 PD 充电头供电。")
+        }
+        .onChange(of: currentMode) { _, newValue in
+            // 设备确认态追上本地乐观态：交还给设备状态驱动。
+            if localMode == newValue {
+                localMode = nil
+                reconcileTask?.cancel()
+            }
         }
         .sheet(isPresented: $showBatteryTargetSheet) {
             TargetAdjustSheet(kind: .battery)
@@ -241,10 +258,10 @@ struct ModeGridView: View {
         }
     }
 
-    /// 按当前模式只显示对应的一行专属行。
+    /// 按当前模式只显示对应的一行专属行（用乐观态，点按立即切换）。
     @ViewBuilder
     private var modeExclusiveRow: some View {
-        switch currentMode {
+        switch displayMode {
         case .smart:
             HStack(spacing: 10) {
                 presetButton("静音", selected: state.smartPreset == 0) {
@@ -353,8 +370,51 @@ struct ModeGridView: View {
         }
     }
 
+    /// 点按立即本地乐观更新选中态（弹簧动画）+ 120ms 防抖后异步发帧；
+    /// 连续快点只发最后一次；设备回包只校对、不抢 UI。
     private func selectMode(_ mode: DeviceMode) {
         markManualOverride()
+        if mode == .overclock {
+            if state.freezeMode {
+                // 已在超频时再点一次 = 退出超频：乐观显示为设备当前运行模式。
+                let fallback = DeviceMode(runMode: state.pendingRunMode ?? state.runMode)
+                setLocalMode(fallback == .overclock ? .smart : fallback)
+                dispatchDebounced(mode)
+            } else if overclockAck {
+                setLocalMode(mode)
+                dispatchDebounced(mode)
+            } else {
+                showOverclockWarning = true
+            }
+            return
+        }
+        setLocalMode(mode)
+        dispatchDebounced(mode)
+    }
+
+    private func setLocalMode(_ mode: DeviceMode) {
+        withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.8)) {
+            localMode = mode
+        }
+        // 5 秒内设备没确认就回落到设备真实状态，避免乐观态卡死。
+        reconcileTask?.cancel()
+        reconcileTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            if !Task.isCancelled { localMode = nil }
+        }
+    }
+
+    private func dispatchDebounced(_ mode: DeviceMode) {
+        dispatchTask?.cancel()
+        dispatchTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            dispatchMode(mode)
+        }
+    }
+
+    /// 真正下发模式帧（BLE 层不动，只调控制器原有入口）。
+    private func dispatchMode(_ mode: DeviceMode) {
         switch mode {
         case .smart:
             controller.setSoftwareThermalMode(0)
@@ -371,13 +431,10 @@ struct ModeGridView: View {
             controller.setSoftwareThermalMode(101)
         case .overclock:
             if state.freezeMode {
-                // 已在超频时再点一次 = 退出超频。
                 controller.setFreezeEnabled(false)
-            } else if overclockAck {
+            } else {
                 controller.setSoftwareThermalMode(0)
                 controller.setFreezeEnabled(true)
-            } else {
-                showOverclockWarning = true
             }
         }
     }
@@ -427,7 +484,10 @@ struct TargetAdjustSheet: View {
                                         get: { state.coolerTargetC },
                                         set: {
                                             markManualOverride()
-                                            controller.setTargetTemperature($0)
+                                            // 目标温控环路内只改环路目标，不退出环路。
+                                            // 注意：setTargetTemperature 发 SMART 帧（manual:true）
+                                            // 会立刻退出 101 环路，之前点“调整”就是在这里被踢出目标温控。
+                                            controller.setCoolerTargetC($0)
                                         }
                                     ),
                                     in: -20...16
@@ -680,7 +740,12 @@ struct DeviceFeaturesView: View {
                         get: { state.coolerTargetC },
                         set: {
                             markManualOverride()
-                            controller.setTargetTemperature($0)
+                            if state.softwareThermalMode == B9XProtocol.thermalModeCoolerTarget {
+                                // 目标温控环路内：只改环路目标，不退出环路。
+                                controller.setCoolerTargetC($0)
+                            } else {
+                                controller.setTargetTemperature($0)
+                            }
                         }
                     ),
                     in: -20...16
