@@ -75,9 +75,21 @@ jobs:
           fi
           xcrun simctl list devices available | grep -i "iPhone 16 Pro Max" || true
 
+      - name: Build for testing on simulator
+        run: |
+          xcodebuild build-for-testing \
+            -project B9XController.xcodeproj \
+            -scheme B9XController \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            -derivedDataPath build-sim
+
       - name: Run UI tour on simulator
         run: |
-          xcodebuild test \
+          xcodebuild test-without-building \
             -project B9XController.xcodeproj \
             -scheme B9XController \
             -sdk iphonesimulator \
