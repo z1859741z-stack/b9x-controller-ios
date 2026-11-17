@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// 应用根视图：三个底栏 tab（首页 / 自动化 / 我的），选中态为液态玻璃胶囊高亮。
-/// 内容底部留 104 点安全区，绝不被底栏遮住。
+/// 应用根视图：三个底栏 tab（首页 / 自动化 / 我的），选中态为灰色胶囊高亮
+///（对照原版实测：高约 62pt、宽约 253pt、圆角 16、底边距约 21pt）。
+/// 底栏浮在内容之上，各 tab 的 ScrollView 底部留 100pt，绝不被底栏遮住。
 struct ContentView: View {
     @EnvironmentObject private var controller: CoolerController
     @ObservedObject private var appearance = AppearanceSettings.shared
@@ -27,6 +28,15 @@ struct ContentView: View {
             case .my: return "hexagon"
             }
         }
+
+        /// 选中态用实心图标（对照原版截图：选中图标是实心的）。
+        var iconFilled: String {
+            switch self {
+            case .home: return "house.fill"
+            case .automation: return "person.fill"
+            case .my: return "hexagon.fill"
+            }
+        }
     }
 
     var body: some View {
@@ -44,44 +54,48 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, 104)
+            // 底栏浮在内容之上（内容从底栏下滑过，玻璃才能透出后面的内容）：
+            // 各 tab 自己的 ScrollView 底部已留 100pt，不会被底栏遮住。
 
-            // 液态玻璃底栏：选中项套一层更亮的胶囊（对照原版截图）。
-            HStack(spacing: 4) {
+            // 液态玻璃底栏（对照原版实测：高约 62pt、宽约 253pt、圆角 16、
+            // 底边距约 21pt、图标 22pt、文字 11pt、选中灰胶囊约 80pt 宽）。
+            // 与“连接”开关共用 sharedLiquidGlass，背板透明。
+            HStack(spacing: 0) {
                 ForEach(Tab.allCases, id: \.self) { item in
                     Button {
-                        withAnimation(.easeInOut(duration: appearance.effectiveAnimationDuration)) {
+                        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
                             tab = item
                         }
                     } label: {
                         VStack(spacing: 4) {
-                            Image(systemName: item.icon)
-                                .font(.system(size: 20, weight: .semibold))
+                            Image(systemName: tab == item ? item.iconFilled : item.icon)
+                                .font(.system(size: 22, weight: .semibold))
                             Text(item.title)
-                                .font(.caption2)
+                                .font(.system(size: 11, weight: tab == item ? .semibold : .regular))
                         }
-                        .foregroundStyle(tab == item ? Color.b9xAccentLight : Color.b9xTextDim)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .foregroundStyle(tab == item ? .primary : Color.b9xTextDim)
+                        .frame(width: 82)
                         .background(
-                            tab == item
-                                ? Color.b9xAccent.opacity(0.2 * appearance.buttonOpacity + 0.08)
-                                : Color.clear
+                            tab == item ? Color.tabSelectionFill : Color.clear,
+                            in: Capsule()
                         )
-                        .clipShape(Capsule())
+                        .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("tab.\(item.rawValue)")
                 }
             }
-            .padding(6)
+            .padding(.horizontal, 4)
             .tabBarGlass()
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
+            .padding(.bottom, 20)
 
             if showStartup {
                 startupOverlay
                     .transition(.opacity)
             }
         }
+        // 底栏要贴到离屏底 20pt（原版底边距约 21pt），须伸进底部安全区。
+        .ignoresSafeArea(edges: .bottom)
         .onAppear {
             controller.bootstrap()
             if !appeared {

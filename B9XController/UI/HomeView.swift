@@ -44,7 +44,8 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
-                .padding(.bottom, 20)
+                // 底部留 100pt：底栏浮在内容之上，滚到底时最后一项刚好露在底栏上方。
+                .padding(.bottom, 100)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
@@ -107,26 +108,28 @@ struct HomeView: View {
             Text("连接")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
-            Toggle("", isOn: Binding(
+            // 与底部导航栏共用 sharedLiquidGlass 的玻璃开关（同一个液态玻璃组件）。
+            GlassToggle(isOn: Binding(
                 get: { connected },
-                set: { on in
-                    if on {
-                        if controller.demoMode { return }
-                        if controller.ble.hasLastDevice() {
-                            controller.ble.autoConnectLastDevice()
-                        } else {
-                            showConnectSheet = true
-                        }
-                    } else {
-                        if controller.demoMode {
-                            controller.exitDemo()
-                        } else {
-                            controller.disconnect()
-                        }
-                    }
-                }
+                set: { setConnected($0) }
             ))
-            .labelsHidden()
+        }
+    }
+
+    private func setConnected(_ on: Bool) {
+        if on {
+            if controller.demoMode { return }
+            if controller.ble.hasLastDevice() {
+                controller.ble.autoConnectLastDevice()
+            } else {
+                showConnectSheet = true
+            }
+        } else {
+            if controller.demoMode {
+                controller.exitDemo()
+            } else {
+                controller.disconnect()
+            }
         }
     }
 

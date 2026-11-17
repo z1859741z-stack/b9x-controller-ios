@@ -26,7 +26,8 @@ struct MoreView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
-                .padding(.bottom, 24)
+                // 底部留 100pt：底栏浮在内容之上，滚到底时最后一项刚好露在底栏上方。
+                .padding(.bottom, 100)
             }
             .navigationTitle("我的")
             .navigationBarTitleDisplayMode(.inline)
