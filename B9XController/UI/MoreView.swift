@@ -40,10 +40,15 @@ struct MoreView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             // 巡游（CI 截图）：第 8 步进法律页，第 9 步退回。
+            // onAppear 也补一次：固定步数启动时 MoreView 是在 tab 切过来后
+            // 才挂载的，挂载时 step 已是 8，onChange 收不到变化。
             .onChange(of: tour.step) { _, step in
                 guard tour.isTouring else { return }
                 if step == 8 { showLegal = true }
                 if step == 9 { showLegal = false }
+            }
+            .onAppear {
+                if tour.isTouring && tour.step == 8 { showLegal = true }
             }
         }
         .alert("检查更新", isPresented: $showUpdateAlert) {

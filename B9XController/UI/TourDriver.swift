@@ -5,11 +5,12 @@ import SwiftUI
 /// 只改 UI 本地展示状态（localMode / tab / 法律页开关），不发任何 BLE 帧，
 /// 不改持久状态；真机用户永远进不来（无启动参数时 isTouring 为 false）。
 ///
-/// 驱动方式：GCD asyncAfter 链，1.6 秒一步。
-/// 前两版都翻车：Timer.scheduledTimer 在模拟器里不推进（run 43995047613
-/// 全是初始状态）；SwiftUI .task + Task.sleep 一取消就瞬间跑完 9 步
-/// （run 43996666258 首张截图角标已是 9/9）。asyncAfter 不受任务取消
-/// 影响，start() 用 started 只启动一次，防重复链。
+/// 两种驱动：
+/// 1. 固定步数（CI 用）：启动参数 -UITourStep N，直接跳到第 N 步，不跑
+///    计时链。用来绕开 simctl launch 在冷模拟器上十几秒才返回、计时巡游
+///    在截图前就跑完的问题——Timer / .task / GCD 三版全栽在这上面
+///    （三个 run 的首张截图角标都是 9/9）。
+/// 2. 计时链（手动跑 -UITour 时）：GCD asyncAfter，1.6 秒一步。
 final class TourDriver: ObservableObject {
     static let shared = TourDriver()
 
@@ -22,12 +23,29 @@ final class TourDriver: ObservableObject {
 
     var isTouring: Bool { CommandLine.arguments.contains("-UITour") }
 
+    /// 固定步数：-UITourStep N（CI 每步单独启动一次）。
+    var fixedStep: Int? {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "-UITourStep"),
+              i + 1 < args.count,
+              let n = Int(args[i + 1]),
+              (0...Self.lastStep).contains(n) else { return nil }
+        return n
+    }
+
     private var started = false
 
     func start() {
         guard isTouring, !started else { return }
         started = true
-        scheduleNext()
+        if let n = fixedStep {
+            // 等页面挂载完再设步数，各页的 onChange 才能收到变化。
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.step = n
+            }
+        } else {
+            scheduleNext()
+        }
     }
 
     private func scheduleNext() {
