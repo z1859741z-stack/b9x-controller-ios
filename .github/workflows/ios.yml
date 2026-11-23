@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-26
@@ -45,6 +48,15 @@ jobs:
         with:
           name: B9XController-unsigned-ipa
           path: B9XController-unsigned.ipa
+
+      - name: Publish IPA to release (latest-build)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHORT=$(git rev-parse --short HEAD)
+          cp B9XController-unsigned.ipa "B9XController-$SHORT-unsigned.ipa"
+          gh release view latest-build >/dev/null 2>&1 || gh release create latest-build --title "Latest build" --notes "CI 自动构建的未签名 IPA" --prerelease
+          gh release upload latest-build B9XController-unsigned.ipa "B9XController-$SHORT-unsigned.ipa" --clobber
 
   # 模拟器截图巡游：iPhone 16 Pro Max（iOS 26），每步单独启动一次
   #（-UITourStep N），simctl 每步截屏上传。固定步数不依赖计时，
