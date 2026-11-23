@@ -147,7 +147,11 @@ struct ModeGridView: View {
     private var displayMode: DeviceMode { localMode ?? currentMode }
 
     private var currentMode: DeviceMode {
-        if state.freezeMode { return .overclock }
+        if state.freezeMode {
+            // 正在退出超频去切别的模式：显示目标模式，避免选中态来回跳。
+            if let pending = state.pendingRunMode { return DeviceMode(runMode: pending) }
+            return .overclock
+        }
         switch state.softwareThermalMode {
         case 100: return .battery
         case 101: return .target
@@ -247,6 +251,13 @@ struct ModeGridView: View {
         .onChange(of: currentMode) { _, newValue in
             // 设备确认态追上本地乐观态：交还给设备状态驱动。
             if localMode == newValue {
+                localMode = nil
+                reconcileTask?.cancel()
+            }
+        }
+        .onChange(of: state.lastError) { _, err in
+            // 设备明确没确认（模式/超频事务失败）：立刻回落到真实状态，不再等超时。
+            if let err, err.contains("未确认") {
                 localMode = nil
                 reconcileTask?.cancel()
             }
@@ -410,10 +421,12 @@ struct ModeGridView: View {
         withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.8)) {
             localMode = mode
         }
-        // 5 秒内设备没确认就回落到设备真实状态，避免乐观态卡死。
+        // 设备没确认就回落到设备真实状态，避免乐观态卡死。
+        // 涉及进/出超频时 Freeze 事务最长约 5s、再加模式事务约 2.3s，给 9s；其余 5s。
+        let involvesFreeze = state.freezeMode || mode == .overclock
         reconcileTask?.cancel()
         reconcileTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(5))
+            try? await Task.sleep(for: .seconds(involvesFreeze ? 9 : 5))
             if !Task.isCancelled { localMode = nil }
         }
     }

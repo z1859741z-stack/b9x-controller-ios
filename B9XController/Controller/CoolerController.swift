@@ -989,6 +989,8 @@ final class CoolerController: ObservableObject {
             freezeDesired = false
             UserDefaults.standard.set(false, forKey: DefaultsKey.freezeDesired)
             pendingModeRequest = req
+            // 界面立即显示目标模式（不等 Freeze 退出确认）；退出失败时清掉。
+            state.pendingRunMode = req.mode
             state.lastError = "正在等待退出超频…"
             log("正在等待退出超频，模式请求已暂存")
             setFreezeEnabled(false)
@@ -1374,6 +1376,9 @@ final class CoolerController: ObservableObject {
             state.lastError = "设备未确认进入超频体验，请检查供电"
             log("设备未确认进入超频体验，请检查供电")
         } else {
+            // 退出失败：丢弃暂存的模式请求，界面回落到真实状态（超频）。
+            pendingModeRequest = nil
+            state.pendingRunMode = nil
             state.lastError = "设备未确认退出超频体验；已阻止后续模式切换"
             log("设备未确认退出超频体验；已阻止后续模式切换")
         }
