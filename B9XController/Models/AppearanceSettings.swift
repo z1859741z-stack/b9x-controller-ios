@@ -300,6 +300,20 @@ enum AppInfo {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.8.143"
     }
 
+    static var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "227"
+    }
+
+    /// CI 在构建时写进 Info.plist 的短 commit（GIT_COMMIT）；本地构建没有就显示“—”。
+    static var gitCommit: String {
+        Bundle.main.infoDictionary?["GIT_COMMIT"] as? String ?? "—"
+    }
+
+    /// 最低支持系统版本：直接读 Info.plist 的 MinimumOSVersion（部署目标），不写死。
+    static var minimumOSVersion: String {
+        Bundle.main.infoDictionary?["MinimumOSVersion"] as? String ?? "26.0"
+    }
+
     static var bundleID: String {
         Bundle.main.bundleIdentifier ?? "com.enginecore.plus"
     }

@@ -175,11 +175,15 @@ struct SystemInfoView: View {
             VStack(spacing: 16) {
                 GlassCard {
                     VStack(spacing: 0) {
-                        infoRow("软件版本", AppInfo.versionString)
+                        infoRow("软件版本", AppInfo.shortVersion)
+                        Divider()
+                        infoRow("构建号", AppInfo.buildNumber)
+                        Divider()
+                        infoRow("提交", AppInfo.gitCommit)
                         Divider()
                         infoRow("系统版本", "iOS \(UIDevice.current.systemVersion)")
                         Divider()
-                        infoRow("最低支持", "iOS 17.0")
+                        infoRow("最低支持", "iOS \(AppInfo.minimumOSVersion)")
                         Divider()
                         infoRow("设备", UIDevice.current.model)
                         Divider()

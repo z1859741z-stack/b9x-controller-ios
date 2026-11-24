@@ -199,7 +199,7 @@ struct MoreView: View {
     private var settingsCard: some View {
         GlassCard {
             VStack(spacing: 0) {
-                menuRow("系统信息", "软件版本 · 系统版本 · 最低支持 iOS 17.0") {
+                menuRow("系统信息", "软件版本 · 系统版本 · 最低支持 iOS \(AppInfo.minimumOSVersion)") {
                     SystemInfoView()
                 }
                 Divider()

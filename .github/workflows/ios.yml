@@ -22,12 +22,20 @@ jobs:
           if [ -n "$latest" ]; then sudo xcode-select -s "$latest" || true; fi
           xcodebuild -version
 
+      - name: Stamp build number and commit
+        run: |
+          # 构建号 = workflow run number（只在构建时改，不提交回仓库）；
+          # 短 commit 写进 Info.plist（GIT_COMMIT），系统信息页显示。
+          /usr/libexec/PlistBuddy -c "Add :GIT_COMMIT string ${GITHUB_SHA:0:7}" B9XController/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :GIT_COMMIT ${GITHUB_SHA:0:7}" B9XController/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :GIT_COMMIT" B9XController/Info.plist
+
       - name: Build (no signing)
         run: |
           xcodebuild -project B9XController.xcodeproj \
             -scheme B9XController \
             -sdk iphoneos \
             -configuration Release \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -90,6 +98,12 @@ jobs:
           fi
           xcrun simctl list devices available | grep -i "iPhone 16 Pro Max" || true
 
+      - name: Stamp build number and commit
+        run: |
+          # 和 build job 同一套戳：构建号 = run number，短 commit 写进 Info.plist。
+          /usr/libexec/PlistBuddy -c "Add :GIT_COMMIT string ${GITHUB_SHA:0:7}" B9XController/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :GIT_COMMIT ${GITHUB_SHA:0:7}" B9XController/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :GIT_COMMIT" B9XController/Info.plist
+
       - name: Build for simulator
         run: |
           xcodebuild build \
@@ -97,6 +111,7 @@ jobs:
             -scheme B9XController \
             -sdk iphonesimulator \
             -configuration Debug \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
