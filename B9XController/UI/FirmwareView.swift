@@ -70,13 +70,13 @@ struct FirmwareView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(canStart ? Color.b9xAccent : Color.b9xCard2)
+                            .glassBackground((canStart ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
                             .foregroundStyle(canStart ? .white : Color.b9xTextDim)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .disabled(!canStart)
                     if stageIsActive(stage) {
                         Button("取消刷写", role: .destructive, action: cancelFlash)
+                            .buttonStyle(.glass)
                     }
                 }
             }
@@ -249,8 +249,7 @@ struct FirmwareView: View {
                     .foregroundStyle(.primary)
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.b9xCard2)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .glassBackground(in: RoundedRectangle(cornerRadius: 10))
                 TextField("在此输入确认语", text: $consentInput)
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()

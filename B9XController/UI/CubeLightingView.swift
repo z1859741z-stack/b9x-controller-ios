@@ -100,9 +100,8 @@ struct CubeLightingView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(currentFrame != nil && !isSending ? Color.b9xAccent : Color.b9xCard2)
+                        .glassBackground((currentFrame != nil && !isSending ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(currentFrame != nil && !isSending ? .white : Color.b9xTextDim)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .disabled(currentFrame == nil || isSending)
                 if let message = resultMessage {
@@ -139,6 +138,8 @@ struct CubeLightingView: View {
                         selectedFrameIndex = frames.count - 1
                         CubeSequenceStore.save(frames)
                     }
+                    .buttonStyle(.glass)
+                    .controlSize(.small)
                     .font(.subheadline.bold())
                     .foregroundStyle(Color.b9xAccentLight)
                 }
@@ -176,6 +177,8 @@ struct CubeLightingView: View {
                             frames[selectedFrameIndex].pixels = Array(repeating: 0, count: CubeFrame.pixelCount)
                             CubeSequenceStore.save(frames)
                         }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
                         .font(.subheadline)
                         .foregroundStyle(.red)
                     }

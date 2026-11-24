@@ -44,8 +44,8 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
-                // 底部留 100pt：底栏浮在内容之上，滚到底时最后一项刚好露在底栏上方。
-                .padding(.bottom, 100)
+                // 系统 TabView 已把 Tab 栏算进安全区，这里只留常规底边距。
+                .padding(.bottom, 24)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
@@ -216,6 +216,8 @@ struct HomeView: View {
                         .foregroundStyle(.primary)
                     Spacer()
                     Button("自选参数") { showMetricPicker = true }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
                         .font(.subheadline)
                         .foregroundStyle(Color.b9xAccentLight)
                 }
@@ -337,8 +339,7 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(Color.b9xCard)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .glassBackground(in: RoundedRectangle(cornerRadius: 20))
     }
 
     // ------------------------------------------------------------ 参数取值

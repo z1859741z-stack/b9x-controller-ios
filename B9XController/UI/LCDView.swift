@@ -64,9 +64,8 @@ struct LCDView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(selectedImage != nil && !isUploading ? Color.b9xAccent : Color.b9xCard2)
+                        .glassBackground((selectedImage != nil && !isUploading ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(selectedImage != nil && !isUploading ? .white : Color.b9xTextDim)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .disabled(selectedImage == nil || isUploading)
                 if isUploading {
@@ -117,9 +116,8 @@ struct LCDView: View {
                         .font(.subheadline.bold())
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.b9xCard2)
+                        .glassBackground(in: RoundedRectangle(cornerRadius: 12))
                         .foregroundStyle(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .onChange(of: selectedItem) { _, newValue in
                     Task {

@@ -40,8 +40,8 @@ struct AutomationView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            // 底部留 100pt：底栏浮在内容之上，滚到底时最后一项刚好露在底栏上方。
-            .padding(.bottom, 100)
+            // 系统 TabView 已把 Tab 栏算进安全区，这里只留常规底边距。
+            .padding(.bottom, 24)
         }
         .sheet(item: $editingScene) { scene in
             NavigationStack {
@@ -268,9 +268,8 @@ struct AutomationView: View {
                         Image(systemName: "plus")
                             .font(.headline)
                             .padding(8)
-                            .background(Color.b9xAccent.opacity(0.2))
+                            .glassBackground(Color.b9xAccent.opacity(0.2), in: Circle())
                             .foregroundStyle(Color.b9xAccentLight)
-                            .clipShape(Circle())
                     }
                 }
                 if scenes.isEmpty {
@@ -296,9 +295,8 @@ struct AutomationView: View {
                             .font(.subheadline.bold())
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color.b9xAccent)
+                            .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 10))
                             .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
                             Button {
                                 editingScene = scene
                             } label: {
@@ -550,25 +548,26 @@ struct AutomationView: View {
                     .foregroundStyle(.primary)
                 Toggle("每天重复", isOn: $shutdownRepeat)
                     .foregroundStyle(.primary)
-                HStack(spacing: 10) {
-                    Button("开始定时") {
-                        controller.setTimedShutdown(repeat: shutdownRepeat, enabled: true, minutes: shutdownMinutes)
+                // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
+                GlassEffectContainer(spacing: 4) {
+                    HStack(spacing: 10) {
+                        Button("开始定时") {
+                            controller.setTimedShutdown(repeat: shutdownRepeat, enabled: true, minutes: shutdownMinutes)
+                        }
+                        .font(.subheadline.bold())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
+                        .foregroundStyle(.white)
+                        Button("取消定时") {
+                            controller.setTimedShutdown(repeat: false, enabled: false, minutes: 0)
+                        }
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .glassBackground(in: RoundedRectangle(cornerRadius: 12))
+                        .foregroundStyle(.red)
                     }
-                    .font(.subheadline.bold())
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color.b9xAccent)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    Button("取消定时") {
-                        controller.setTimedShutdown(repeat: false, enabled: false, minutes: 0)
-                    }
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color.b9xCard2)
-                    .foregroundStyle(.red)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
         }

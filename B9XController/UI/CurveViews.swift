@@ -86,9 +86,8 @@ struct RedMagicCurveView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.b9xAccent)
+                        .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 if let message = resultMessage {
                     Text(message)
@@ -122,6 +121,8 @@ struct RedMagicCurveView: View {
                         RedMagicCurveStore.saveLevels(levels)
                         resultMessage = nil
                     }
+                    .buttonStyle(.glass)
+                    .controlSize(.small)
                     .font(.subheadline.bold())
                     .foregroundStyle(Color.b9xAccentLight)
                 }

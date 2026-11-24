@@ -36,9 +36,8 @@ struct PetView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.b9xAccent)
+                        .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 if player.package != nil {
                     Button("移除当前桌宠包", role: .destructive) {
@@ -47,6 +46,7 @@ struct PetView: View {
                         settings.save()
                         importInfo = nil
                     }
+                    .buttonStyle(.glass)
                     .font(.subheadline)
                 }
                 Button {
@@ -56,9 +56,8 @@ struct PetView: View {
                         .font(.subheadline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.b9xCard2)
+                        .glassBackground(in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 Text("桌宠是应用内覆盖层，不是系统悬浮窗。点按桌宠开面板、拖动可以移动、拖到底部关闭。包过大（>32MB）或动作帧超限（>300 帧）会拒绝导入。")
                     .font(.caption)
@@ -124,17 +123,19 @@ struct PetView: View {
                     .frame(height: 220)
                 if !player.animationNames.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(player.animationNames, id: \.self) { name in
-                                Button(name) {
-                                    player.play(animation: name)
+                        // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
+                        GlassEffectContainer(spacing: 4) {
+                            HStack(spacing: 8) {
+                                ForEach(player.animationNames, id: \.self) { name in
+                                    Button(name) {
+                                        player.play(animation: name)
+                                    }
+                                    .font(.subheadline)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .glassBackground((player.currentAnimation == name ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 10))
+                                    .foregroundStyle(player.currentAnimation == name ? .white : .primary)
                                 }
-                                .font(.subheadline)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(player.currentAnimation == name ? Color.b9xAccent : Color.b9xCard2)
-                                .foregroundStyle(player.currentAnimation == name ? .white : .primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
                         }
                     }
@@ -321,8 +322,7 @@ struct PetOverlayView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
-                .background(Color.b9xCard2)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .glassBackground(in: RoundedRectangle(cornerRadius: 10))
             }
         }
         .padding(.horizontal, 20)
@@ -395,8 +395,7 @@ struct PetOverlayView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(Color.b9xCard2)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .glassBackground(in: RoundedRectangle(cornerRadius: 14))
     }
 
     private func cycleMode() {
@@ -446,6 +445,7 @@ struct PetSettingsView: View {
                     settings.positionY = 0.75
                     settings.save()
                 }
+                .buttonStyle(.glass)
             }
             Section("面板上显示的参数") {
                 ForEach(PetManifest.availableMetricKeys, id: \.key) { item in

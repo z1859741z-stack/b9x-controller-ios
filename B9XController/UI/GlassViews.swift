@@ -32,11 +32,8 @@ extension Color {
     })
     /// 次要文字：跟随系统。
     static let b9xTextDim = Color.secondary
-    /// 底栏选中胶囊：原版冰环 X 是浅蓝色（原版截图实测 #D2DFFF，
-    /// RGB 210,223,255；上一轮误写成中性灰已纠正）。
-    /// 亮暗都用同一色号（原版截图只有亮色，无暗色参考）。
-    static let tabSelectionFill = Color(hex: 0xD2DFFF)
     /// 底栏选中图标/文字蓝：原版截图实测 #025FD6（RGB 2,95,214，图标蓝核心像素）。
+    /// 现在用作原生 iOS 26 TabView 的选中着色（.tint）。
     static let tabSelectionBlue = Color(hex: 0x025FD6)
 }
 
@@ -50,7 +47,10 @@ enum GlassSupport {
 }
 
 /// 圆角卡片（对照原版卡片样式），材质跟随外观设置：
-/// 液态玻璃 → .glassEffect；磨砂模糊 → .ultraThinMaterial；普通 → 纯色 + 透明度滑杆。
+/// 液态玻璃 → iOS 26 .glassEffect(.regular)（放在背景层，不垫任何实色）；
+/// 磨砂模糊 → .ultraThinMaterial；普通 → 纯色 + 透明度滑杆。
+/// 玻璃放 .background 而不是直接套在内容上：直接套在包按钮的视图上，
+/// 会生成 UIPlatformGlassInteractionView 盖在按钮上吃点按（底栏 fix3 实测）。
 struct GlassCard<Content: View>: View {
     @ObservedObject private var appearance = AppearanceSettings.shared
     let content: Content
@@ -60,36 +60,70 @@ struct GlassCard<Content: View>: View {
     }
 
     var body: some View {
-        Group {
-            switch appearance.effectiveMaterial {
-            case .glass:
-                content
-                    .padding(16)
-                    .glassEffect(
-                        .regular.tint(Color(.secondarySystemBackground).opacity(1 - appearance.cardOpacity)),
-                        in: RoundedRectangle(cornerRadius: 20)
-                    )
-            case .frosted:
-                content
-                    .padding(16)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                    .background(
-                        Color.b9xCard.opacity(appearance.cardOpacity * 0.35),
-                        in: RoundedRectangle(cornerRadius: 20)
-                    )
-            case .plain:
-                content
-                    .padding(16)
-                    .background(
-                        Color.b9xCard.opacity(appearance.cardOpacity),
-                        in: RoundedRectangle(cornerRadius: 20)
-                    )
-            }
+        switch appearance.effectiveMaterial {
+        case .glass:
+            content
+                .padding(16)
+                .background {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.clear)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+                        .allowsHitTesting(false)
+                }
+        case .frosted:
+            content
+                .padding(16)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                .background(
+                    Color.b9xCard.opacity(appearance.cardOpacity * 0.35),
+                    in: RoundedRectangle(cornerRadius: 20)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                )
+        case .plain:
+            content
+                .padding(16)
+                .background(
+                    Color.b9xCard.opacity(appearance.cardOpacity),
+                    in: RoundedRectangle(cornerRadius: 20)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                )
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
-        )
+    }
+}
+
+/// 卡片内的格子 / 按钮 / 胶囊 / 预设按钮用的液态玻璃背板。
+/// tint 为 .clear 时是无色玻璃（替代原来的 b9xCard2 实色），
+/// 选中态 / 主按钮传强调蓝，得到着色玻璃（替代原来的 b9xAccent 实色）。
+/// - 玻璃放背景层并关掉它自己的点按，按钮在玻璃上方，点按直接落到按钮上；
+/// - contentShape 把整块形状都变成点按区（原来实色背景天然接点按，
+///   玻璃背板关掉点按后要补回来，不然空白处会点穿）。
+/// 外观设置选了磨砂 / 普通时回退到实色背板（与原来一致）。
+struct GlassSurfaceModifier<S: Shape>: ViewModifier {
+    @ObservedObject private var appearance = AppearanceSettings.shared
+    let tint: Color
+    let shape: S
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if appearance.effectiveMaterial == .glass {
+                    shape
+                        .fill(Color.clear)
+                        .glassEffect(tint == .clear ? .regular : .regular.tint(tint), in: shape)
+                        .allowsHitTesting(false)
+                } else {
+                    shape
+                        .fill(tint == .clear ? Color.b9xCard2 : tint)
+                        .allowsHitTesting(false)
+                }
+            }
+            .contentShape(shape)
     }
 }
 
@@ -206,8 +240,7 @@ struct StatCell: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(Color.b9xCard2)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .glassBackground(in: RoundedRectangle(cornerRadius: 14))
     }
 }
 
@@ -294,23 +327,29 @@ struct YMarkShape: Shape {
 // ------------------------------------------------------------ 液态玻璃封装
 
 extension View {
-    /// 底部导航栏专用的液态玻璃组件（iOS 26 .glassEffect(.regular)，带折射与高光）。
-    /// 只供底栏用，不走外观设置的磨砂回退，背板透明、不垫白色。
-    /// 首页“连接”开关不用这一份（重写版原样：系统 Toggle 自带液态玻璃外观）。
+    /// 格子 / 按钮 / 胶囊的液态玻璃背板（见 GlassSurfaceModifier）。
+    /// 用法：替换原来的 `.background(实色).clipShape(形状)`。
+    func glassBackground<S: Shape>(_ tint: Color = .clear, in shape: S) -> some View {
+        modifier(GlassSurfaceModifier(tint: tint, shape: shape))
+    }
+
+    /// 通用液态玻璃（iOS 26 .glassEffect(.regular)，带折射与高光），放在背景层。
+    /// 只给不含按钮的形状用；包按钮的视图请用 glassBackground。
     func sharedLiquidGlass<S: Shape>(in shape: S, tint: Color? = nil) -> some View {
-        if let tint {
-            self.glassEffect(.regular.tint(tint), in: shape)
-        } else {
-            self.glassEffect(.regular, in: shape)
+        self.background {
+            shape
+                .fill(Color.clear)
+                .glassEffect(tint.map { Glass.regular.tint($0) } ?? .regular, in: shape)
+                .allowsHitTesting(false)
         }
     }
 
-    /// 按外观设置给任意形状套材质（卡片用圆角矩形，底栏用胶囊）。
+    /// 按外观设置给任意形状套材质（玻璃放背景层）。
     @ViewBuilder func appearanceMaterial<S: Shape>(_ shape: S) -> some View {
         let appearance = AppearanceSettings.shared
         switch appearance.effectiveMaterial {
         case .glass:
-            self.glassEffect(.regular, in: shape)
+            self.sharedLiquidGlass(in: shape)
         case .frosted:
             self.background(.ultraThinMaterial, in: shape)
         case .plain:
@@ -318,16 +357,10 @@ extension View {
         }
     }
 
-    /// 底栏专用：真正的液态玻璃 + 全胶囊（原版截图实测：圆角半径＝栏高一半，
-    /// 上一轮误写成圆角矩形 16 已纠正）。
-    @ViewBuilder func tabBarGlass() -> some View {
-        self.sharedLiquidGlass(in: Capsule())
-    }
-
     /// 旧入口（兼容）：按开关决定用液态玻璃还是超薄材质。
     @ViewBuilder func conditionalGlass(_ enabled: Bool) -> some View {
         if enabled {
-            self.glassEffect(.regular, in: .capsule)
+            self.sharedLiquidGlass(in: Capsule())
         } else {
             self.background(.ultraThinMaterial, in: .capsule)
         }

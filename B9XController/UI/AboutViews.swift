@@ -225,9 +225,8 @@ struct LegalConsentView: View {
                         Text(LegalText.accept)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Color.b9xAccent)
+                            .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 14))
                             .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     Button {
                         onDecline()
@@ -235,9 +234,8 @@ struct LegalConsentView: View {
                         Text(LegalText.decline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Color.primary.opacity(0.08))
+                            .glassBackground(in: RoundedRectangle(cornerRadius: 14))
                             .foregroundStyle(.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                 }
                 .padding(.horizontal, 20)
@@ -278,9 +276,8 @@ struct LegalDeclinedView: View {
                 Text(LegalText.readAgain)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.b9xAccent)
+                    .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 14))
                     .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
             }
             .padding(.horizontal, 40)
             Spacer()

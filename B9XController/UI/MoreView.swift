@@ -33,8 +33,8 @@ struct MoreView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
-                // 底部留 100pt：底栏浮在内容之上，滚到底时最后一项刚好露在底栏上方。
-                .padding(.bottom, 100)
+                // 系统 TabView 已把 Tab 栏算进安全区，这里只留常规底边距。
+                .padding(.bottom, 24)
             }
             .navigationTitle("我的")
             .navigationBarTitleDisplayMode(.inline)

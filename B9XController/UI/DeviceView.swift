@@ -199,29 +199,31 @@ struct ModeGridView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.b9xTextDim)
 
-                LazyVGrid(
-                    columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
-                    spacing: 10
-                ) {
-                    ForEach(DeviceMode.allCases, id: \.self) { mode in
-                        Button {
-                            selectMode(mode)
-                        } label: {
-                            HStack(spacing: 4) {
-                                if displayMode == mode {
-                                    Image(systemName: "checkmark")
-                                        .font(.caption.bold())
+                // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
+                GlassEffectContainer(spacing: 4) {
+                    LazyVGrid(
+                        columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
+                        spacing: 10
+                    ) {
+                        ForEach(DeviceMode.allCases, id: \.self) { mode in
+                            Button {
+                                selectMode(mode)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    if displayMode == mode {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.bold())
+                                    }
+                                    Text(mode.name)
+                                        .font(.subheadline)
                                 }
-                                Text(mode.name)
-                                    .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .glassBackground((displayMode == mode ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
+                                .foregroundStyle(displayMode == mode ? .white : .primary)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(displayMode == mode ? Color.b9xAccent : Color.b9xCard2)
-                            .foregroundStyle(displayMode == mode ? .white : .primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .accessibilityIdentifier("mode.\(mode.rawValue)")
                         }
-                        .accessibilityIdentifier("mode.\(mode.rawValue)")
                     }
                 }
                 .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.8), value: displayMode)
@@ -282,34 +284,38 @@ struct ModeGridView: View {
     private var modeExclusiveRow: some View {
         switch displayMode {
         case .smart:
-            HStack(spacing: 10) {
-                presetButton("静音", selected: state.smartPreset == 0) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setSmartPreset(0)
-                }
-                presetButton("极寒", selected: state.smartPreset == 2) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setSmartPreset(2)
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 10) {
+                    presetButton("静音", selected: state.smartPreset == 0) {
+                        markManualOverride()
+                        controller.setSoftwareThermalMode(0)
+                        controller.setSmartPreset(0)
+                    }
+                    presetButton("极寒", selected: state.smartPreset == 2) {
+                        markManualOverride()
+                        controller.setSoftwareThermalMode(0)
+                        controller.setSmartPreset(2)
+                    }
                 }
             }
         case .manual:
-            HStack(spacing: 10) {
-                presetButton("节能", selected: state.manualPreset == 0) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setManualPreset(0)
-                }
-                presetButton("强劲", selected: state.manualPreset == 1) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setManualPreset(1)
-                }
-                presetButton("极强", selected: state.manualPreset == 2) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setManualPreset(2)
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 10) {
+                    presetButton("节能", selected: state.manualPreset == 0) {
+                        markManualOverride()
+                        controller.setSoftwareThermalMode(0)
+                        controller.setManualPreset(0)
+                    }
+                    presetButton("强劲", selected: state.manualPreset == 1) {
+                        markManualOverride()
+                        controller.setSoftwareThermalMode(0)
+                        controller.setManualPreset(1)
+                    }
+                    presetButton("极强", selected: state.manualPreset == 2) {
+                        markManualOverride()
+                        controller.setSoftwareThermalMode(0)
+                        controller.setManualPreset(2)
+                    }
                 }
             }
         case .free:
@@ -330,8 +336,7 @@ struct ModeGridView: View {
                     .foregroundStyle(Color.b9xAccentLight)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.b9xAccent.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .glassBackground(Color.b9xAccent.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
                 }
             }
         case .battery:
@@ -345,8 +350,7 @@ struct ModeGridView: View {
                     .foregroundStyle(Color.b9xAccentLight)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.b9xAccent.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .glassBackground(Color.b9xAccent.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
             }
         case .target:
             HStack {
@@ -359,8 +363,7 @@ struct ModeGridView: View {
                     .foregroundStyle(Color.b9xAccentLight)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.b9xAccent.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .glassBackground(Color.b9xAccent.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
             }
         case .overclock:
             EmptyView()
@@ -383,9 +386,8 @@ struct ModeGridView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(selected ? Color.b9xAccent : Color.b9xCard2)
+            .glassBackground((selected ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
             .foregroundStyle(selected ? .white : .primary)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         // 对照探针（点按测试用）：记下这个预设按钮的全局 frame。
         // 它是用户确认能点按的 SwiftUI Button（切预设），拿它当对照，
@@ -607,26 +609,27 @@ struct TimerView: View {
                             .foregroundStyle(.primary)
                         Toggle("仅执行一次", isOn: $once)
                             .foregroundStyle(.primary)
-                        HStack(spacing: 10) {
-                            Button {
-                                controller.setTimedShutdown(repeat: !once, enabled: true, minutes: Int(minutes))
-                            } label: {
-                                Text("开始定时")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(Color.b9xAccent)
-                                    .foregroundStyle(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                            Button {
-                                controller.setTimedShutdown(repeat: false, enabled: false, minutes: 0)
-                            } label: {
-                                Text("取消")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(Color.primary.opacity(0.1))
-                                    .foregroundStyle(.primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                        // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
+                        GlassEffectContainer(spacing: 4) {
+                            HStack(spacing: 10) {
+                                Button {
+                                    controller.setTimedShutdown(repeat: !once, enabled: true, minutes: Int(minutes))
+                                } label: {
+                                    Text("开始定时")
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
+                                        .foregroundStyle(.white)
+                                }
+                                Button {
+                                    controller.setTimedShutdown(repeat: false, enabled: false, minutes: 0)
+                                } label: {
+                                    Text("取消")
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .glassBackground(in: RoundedRectangle(cornerRadius: 12))
+                                        .foregroundStyle(.primary)
+                                }
                             }
                         }
                     }
@@ -863,9 +866,8 @@ struct DeviceFeaturesView: View {
                     Text("应用曲线")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color.b9xAccent)
+                        .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
         }

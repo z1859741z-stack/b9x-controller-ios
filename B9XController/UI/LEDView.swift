@@ -128,8 +128,7 @@ struct LEDView: View {
                     .foregroundStyle(Color.b9xAccentLight)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .background(Color.b9xAccent.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .glassBackground(Color.b9xAccent.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
                 }
             }
         }
@@ -138,41 +137,43 @@ struct LEDView: View {
     private var effectPickerSheet: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    ForEach(LEDDefaults.modes, id: \.id) { mode in
-                        Button {
-                            selectedType = mode.id
-                            if let saved = LEDModeLightingStore.load(for: mode.id) {
-                                colors = saved.colors.map { Color(hex: $0) }
-                                uiSpeed = LEDDefaults.uiSpeed(for: mode.id, raw: saved.period)
-                                brightness = saved.light
-                                colorful = saved.colorful
-                                modeLightingNote = "已载入“\(mode.name)”保存的灯效"
-                            } else {
-                                colors = LEDDefaults.colors(for: mode.id)
+                // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
+                GlassEffectContainer(spacing: 4) {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        ForEach(LEDDefaults.modes, id: \.id) { mode in
+                            Button {
+                                selectedType = mode.id
+                                if let saved = LEDModeLightingStore.load(for: mode.id) {
+                                    colors = saved.colors.map { Color(hex: $0) }
+                                    uiSpeed = LEDDefaults.uiSpeed(for: mode.id, raw: saved.period)
+                                    brightness = saved.light
+                                    colorful = saved.colorful
+                                    modeLightingNote = "已载入“\(mode.name)”保存的灯效"
+                                } else {
+                                    colors = LEDDefaults.colors(for: mode.id)
+                                    selectedChip = 0
+                                    wheelColor = colors.first ?? .red
+                                    colorful = false
+                                    modeLightingNote = nil
+                                }
                                 selectedChip = 0
                                 wheelColor = colors.first ?? .red
-                                colorful = false
-                                modeLightingNote = nil
-                            }
-                            selectedChip = 0
-                            wheelColor = colors.first ?? .red
-                            apply()
-                            showEffectSheet = false
-                        } label: {
-                            HStack(spacing: 4) {
-                                if selectedType == mode.id {
-                                    Image(systemName: "checkmark")
-                                        .font(.caption.bold())
+                                apply()
+                                showEffectSheet = false
+                            } label: {
+                                HStack(spacing: 4) {
+                                    if selectedType == mode.id {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.bold())
+                                    }
+                                    Text(mode.name)
+                                        .font(.subheadline)
                                 }
-                                Text(mode.name)
-                                    .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .glassBackground((selectedType == mode.id ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
+                                .foregroundStyle(selectedType == mode.id ? .white : .primary)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(selectedType == mode.id ? Color.b9xAccent : Color.b9xCard2)
-                            .foregroundStyle(selectedType == mode.id ? .white : .primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                     }
                 }
@@ -220,9 +221,8 @@ struct LEDView: View {
                         .font(.subheadline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color.b9xCard2)
+                        .glassBackground(in: RoundedRectangle(cornerRadius: 12))
                         .foregroundStyle(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 HStack {
                     Text("\(colorRange.min)~\(colorRange.max)色；长按色块删除")
@@ -239,8 +239,7 @@ struct LEDView: View {
                     .foregroundStyle(Color.b9xAccentLight)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .background(Color.b9xAccent.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .glassBackground(Color.b9xAccent.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -442,9 +441,8 @@ struct LEDView: View {
                         .font(.subheadline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color.b9xCard2)
+                        .glassBackground(in: RoundedRectangle(cornerRadius: 12))
                         .foregroundStyle(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 Text("灯环共 12 颗，下发时取前 8 颗颜色（协议上限 8 色）。")
                     .font(.caption)
@@ -469,9 +467,8 @@ struct LEDView: View {
                             .font(.caption.bold())
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(Color.b9xAccent.opacity(0.2))
+                            .glassBackground(Color.b9xAccent.opacity(0.2), in: RoundedRectangle(cornerRadius: 8))
                             .foregroundStyle(Color.b9xAccentLight)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
                 Text("每个灯效模式可以绑一套自己的灯效（颜色/速度/亮度）。切换模式时自动载入该模式保存的灯效，没保存过就用默认。")
@@ -483,36 +480,37 @@ struct LEDView: View {
                         .font(.caption)
                         .foregroundStyle(.green)
                 }
-                HStack(spacing: 10) {
-                    Button {
-                        LEDModeLightingStore.save(LEDProfile(
-                            type: selectedType,
-                            colors: colors.map { $0.toRGBInt() },
-                            period: LEDDefaults.speedRaw(for: selectedType, uiSpeed: uiSpeed),
-                            light: brightness,
-                            colorful: colorful
-                        ))
-                        modeLightingNote = "已保存为“\(modeName)”的灯效"
-                    } label: {
-                        Text("保存为此模式的灯效")
-                            .font(.subheadline.bold())
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.b9xAccent)
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    Button {
-                        LEDModeLightingStore.remove(for: selectedType)
-                        modeLightingNote = "已清除“\(modeName)”保存的灯效，下次切回来用默认"
-                    } label: {
-                        Text("清除保存")
-                            .font(.subheadline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.b9xCard2)
-                            .foregroundStyle(.red)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
+                GlassEffectContainer(spacing: 4) {
+                    HStack(spacing: 10) {
+                        Button {
+                            LEDModeLightingStore.save(LEDProfile(
+                                type: selectedType,
+                                colors: colors.map { $0.toRGBInt() },
+                                period: LEDDefaults.speedRaw(for: selectedType, uiSpeed: uiSpeed),
+                                light: brightness,
+                                colorful: colorful
+                            ))
+                            modeLightingNote = "已保存为“\(modeName)”的灯效"
+                        } label: {
+                            Text("保存为此模式的灯效")
+                                .font(.subheadline.bold())
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
+                                .foregroundStyle(.white)
+                        }
+                        Button {
+                            LEDModeLightingStore.remove(for: selectedType)
+                            modeLightingNote = "已清除“\(modeName)”保存的灯效，下次切回来用默认"
+                        } label: {
+                            Text("清除保存")
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .glassBackground(in: RoundedRectangle(cornerRadius: 12))
+                                .foregroundStyle(.red)
+                        }
                     }
                 }
             }

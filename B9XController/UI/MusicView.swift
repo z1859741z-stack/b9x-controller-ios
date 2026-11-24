@@ -289,9 +289,8 @@ struct MusicView: View {
                             .font(.subheadline.bold())
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(Color.b9xAccent)
+                            .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
                             .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                         Text(engine.statusMessage)
                             .font(.subheadline)
@@ -303,6 +302,7 @@ struct MusicView: View {
                                     UIApplication.shared.open(url)
                                 }
                             }
+                            .buttonStyle(.glass)
                             .font(.subheadline)
                         }
                         Text("需要 8.5.2 / 8.5.3 R4/R5 固件才支持音乐律动灯效；旧固件上灯效可能没反应。音频只在本地算频段，不保存、不上传。离开本页即停止聆听。")
@@ -371,18 +371,20 @@ struct MusicView: View {
                 Text("律动样式")
                     .font(.headline)
                     .foregroundStyle(.primary)
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    ForEach(MusicPattern.allCases) { item in
-                        Button {
-                            pattern = item
-                        } label: {
-                            Text(item.name)
-                                .font(.subheadline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(pattern == item ? Color.b9xAccent : Color.b9xCard2)
-                                .foregroundStyle(pattern == item ? .white : .primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
+                GlassEffectContainer(spacing: 4) {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        ForEach(MusicPattern.allCases) { item in
+                            Button {
+                                pattern = item
+                            } label: {
+                                Text(item.name)
+                                    .font(.subheadline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .glassBackground((pattern == item ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 12))
+                                    .foregroundStyle(pattern == item ? .white : .primary)
+                            }
                         }
                     }
                 }

@@ -61,6 +61,8 @@ struct ConnectView: View {
                                 .foregroundStyle(.primary)
                             Spacer()
                             Button("清除") { controller.clearError() }
+                                .buttonStyle(.glass)
+                                .controlSize(.small)
                                 .font(.subheadline)
                                 .foregroundStyle(Color.b9xAccentLight)
                         }
@@ -128,8 +130,7 @@ struct ConnectView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                         .foregroundStyle(.red)
-                        .background(Color.red.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .glassBackground(Color.red.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
                 }
             }
         }
@@ -159,8 +160,7 @@ struct ConnectView: View {
                     Text("退出演示")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color.b9xAccent.opacity(0.25))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .glassBackground(Color.b9xAccent.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
                 }
             }
         }
@@ -233,9 +233,8 @@ struct ConnectView: View {
                     Text(controller.connection == .scanning ? "停止扫描" : "扫描设备")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.b9xAccent)
+                        .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
         }
@@ -315,8 +314,7 @@ struct ConnectView: View {
                         .foregroundStyle(Color.b9xAccentLight)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color.b9xAccent.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .glassBackground(Color.b9xAccent.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
                     }
                 } else {
                     Text("还没有保存的设备。连接成功后会自动保存，下次打开直接连。")
@@ -383,8 +381,7 @@ struct DeviceTroubleshootingView: View {
                                 .font(.headline.bold())
                                 .foregroundStyle(.white)
                                 .frame(width: 28, height: 28)
-                                .background(Color.b9xAccent)
-                                .clipShape(Circle())
+                                .glassBackground(Color.b9xAccent, in: Circle())
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(step.title)
                                     .font(.headline)
@@ -403,9 +400,8 @@ struct DeviceTroubleshootingView: View {
                     Text("重新扫描")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.b9xAccent)
+                        .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
             .padding(.horizontal, 20)

@@ -44,9 +44,8 @@ struct BackupRestoreView: View {
                                 Label("导出设置", systemImage: "square.and.arrow.up")
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
-                                    .background(Color.b9xAccent.opacity(0.25))
+                                    .glassBackground(Color.b9xAccent.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
                                     .foregroundStyle(.primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
                             Button {
                                 showImport = true
@@ -54,9 +53,8 @@ struct BackupRestoreView: View {
                                 Label("导入设置", systemImage: "square.and.arrow.down")
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
-                                    .background(Color.b9xAccent.opacity(0.25))
+                                    .glassBackground(Color.b9xAccent.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
                                     .foregroundStyle(.primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
                         }
                         Text("ZIP 格式备份以后再说，目前只支持 JSON 设置文件。")
@@ -293,9 +291,8 @@ struct MediaBackgroundView: View {
                                 Label("选择图片", systemImage: "photo")
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
-                                    .background(Color.b9xAccent.opacity(0.25))
+                                    .glassBackground(Color.b9xAccent.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
                                     .foregroundStyle(.primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
                             if appearance.hasCustomBackground {
                                 Button(role: .destructive) {
@@ -304,9 +301,8 @@ struct MediaBackgroundView: View {
                                     Text("清除")
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 10)
-                                        .background(Color.red.opacity(0.15))
+                                        .glassBackground(Color.red.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
                                         .foregroundStyle(.red)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
                                 }
                             }
                         }
