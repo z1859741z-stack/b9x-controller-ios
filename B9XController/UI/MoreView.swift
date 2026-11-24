@@ -15,6 +15,11 @@ struct MoreView: View {
     @State private var updateURL: URL?
     /// 巡游（CI 截图）第 8 步自动打开法律页用。
     @State private var showLegal = false
+    /// 实验室隐藏入口：连点 5 次版本号（2 秒内）→ 风险提示 → 实验室。
+    @State private var labTapCount = 0
+    @State private var lastLabTapAt = Date.distantPast
+    @State private var showLabRisk = false
+    @State private var showLab = false
 
     var body: some View {
         NavigationStack {
@@ -30,6 +35,10 @@ struct MoreView: View {
                             .id("tour-bottom")
                         // 巡游（CI 截图）专用隐藏入口：第 8 步自动打开法律页。
                         NavigationLink(destination: LegalDocumentView(readOnly: true), isActive: $showLegal) {
+                            EmptyView()
+                        }
+                        // 实验室隐藏入口：连点 5 次版本号确认风险后进。
+                        NavigationLink(destination: LabView(), isActive: $showLab) {
                             EmptyView()
                         }
                     }
@@ -67,6 +76,13 @@ struct MoreView: View {
         } message: {
             Text(updateMessage)
         }
+        // 实验室风险提示：进实验室前先确认，确认后才导航进去。
+        .alert("实验室 · 风量上限测试", isPresented: $showLabRisk) {
+            Button("取消", role: .cancel) { }
+            Button("我知道了，开始测试") { showLab = true }
+        } message: {
+            Text("这是一项真机风量上限测试：风扇会长时间满速运转，发热明显。请用足功率 PD 电源供电，测前清理风扇灰尘。测试中热面上升过快、高温保护触发或断连时会自动中止，测完恢复你原来的模式。")
+        }
     }
 
     /// 巡游第 10 步：滚到最后一张卡底部（验底部留白）。
@@ -95,6 +111,16 @@ struct MoreView: View {
                 Text("版本 \(AppInfo.versionString)")
                     .font(.subheadline)
                     .foregroundStyle(Color.b9xTextDim)
+                    // 实验室隐藏入口：2 秒内连点 5 次版本号。
+                    .onTapGesture {
+                        let now = Date()
+                        labTapCount = now.timeIntervalSince(lastLabTapAt) < 2 ? labTapCount + 1 : 1
+                        lastLabTapAt = now
+                        if labTapCount >= 5 {
+                            labTapCount = 0
+                            showLabRisk = true
+                        }
+                    }
                 Divider()
                 Button {
                     Task {
