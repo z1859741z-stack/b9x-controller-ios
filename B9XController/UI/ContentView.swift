@@ -40,19 +40,32 @@ struct ContentView: View {
         ZStack {
             // 注意：本文件里的 `Tab` 是上面的枚举，系统的 Tab 要写 SwiftUI.Tab。
             TabView(selection: $tab) {
-                SwiftUI.Tab(Tab.home.title, systemImage: Tab.home.icon, value: Tab.home) {
+                // 空心图标（对齐原版）：TabView 级的 .environment(\.symbolVariants, .none)
+                // 不生效——系统在渲染 tab 项时自己给选中图标加 .fill，环境传不进去。
+                // 改用 Label 做法：每个 tab 用 Label(title, systemImage:) 做 label，
+                // 把 .environment(\.symbolVariants, .none) 直接挂在 Label 上。
+                SwiftUI.Tab(value: Tab.home) {
                     HomeView(tab: $tab)
                         .background { backgroundLayer }
+                } label: {
+                    Label(Tab.home.title, systemImage: Tab.home.icon)
+                        .environment(\.symbolVariants, .none)
                 }
 
-                SwiftUI.Tab(Tab.automation.title, systemImage: Tab.automation.icon, value: Tab.automation) {
+                SwiftUI.Tab(value: Tab.automation) {
                     AutomationView()
                         .background { backgroundLayer }
+                } label: {
+                    Label(Tab.automation.title, systemImage: Tab.automation.icon)
+                        .environment(\.symbolVariants, .none)
                 }
 
-                SwiftUI.Tab(Tab.my.title, systemImage: Tab.my.icon, value: Tab.my) {
+                SwiftUI.Tab(value: Tab.my) {
                     MoreView()
                         .background { backgroundLayer }
+                } label: {
+                    Label(Tab.my.title, systemImage: Tab.my.icon)
+                        .environment(\.symbolVariants, .none)
                 }
             }
             .tint(Color.tabSelectionBlue)
