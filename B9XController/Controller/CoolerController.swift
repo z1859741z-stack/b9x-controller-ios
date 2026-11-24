@@ -387,6 +387,17 @@ final class CoolerController: ObservableObject {
         log("退出宣传演示模式")
     }
 
+    /// 实验室红线测试专用：仅 -UILabTest 启动参数下可用（CI 模拟器）。
+    /// 往 demo 状态写假数据，验证 LabRunner 的四种中止逻辑。
+    /// 正常启动（无该参数）直接 return，绝不影响真机。
+    func labTestInject(speed: Int? = nil, hot: Int? = nil, hotProtection: Bool? = nil) {
+        guard CommandLine.arguments.contains("-UILabTest"), demoMode else { return }
+        if let speed { state.speed = speed }
+        if let hot { state.hotSurfaceTemperature = hot }
+        if let hotProtection { state.hotProtectionEnabled = hotProtection }
+        state.lastStateAt = Date()
+    }
+
     // ------------------------------------------------------------ 扫描与连接
 
     func scan() {

@@ -148,7 +148,8 @@ final class LabRunner: ObservableObject {
             statusMessage = "设备未连接或未就绪，先连上 B9X 再测。"
             return
         }
-        guard !controller.demoMode else {
+        // 演示模式下不能测试（红线测试 -UILabTest 除外：它就是跑在演示态上的假数据验证）。
+        guard !controller.demoMode || LabTestDriver.isEnabled else {
             statusMessage = "演示模式下不能测试，请连真机。"
             return
         }
@@ -521,8 +522,11 @@ struct LabView: View {
         .navigationTitle("实验室")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // CI 巡游第 12 步：只验结果表渲染，用固定示例数据（-UITour 时才进）。
-            if TourDriver.shared.isTouring && TourDriver.shared.step == 12 {
+            // 红线测试（-UILabTest）优先：不种预览数据，直接跑真流程（假数据注入）。
+            if LabTestDriver.isEnabled {
+                LabTestDriver.shared.start(runner: runner, controller: controller)
+            } else if TourDriver.shared.isTouring && TourDriver.shared.step == 12 {
+                // CI 巡游第 12 步：只验结果表渲染，用固定示例数据（-UITour 时才进）。
                 runner.previewResults()
             }
         }

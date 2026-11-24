@@ -143,6 +143,20 @@ jobs:
           xcrun simctl launch "$SIM" com.enginecore.plus -UITapTest
           sleep 8
           shot "sim-screenshots/03-taptest.png"
+          # 实验室红线测试：四种中止场景各单独启动一次
+          #（-UILabTest <场景>，假数据只改 demo 状态、不发 BLE）。
+          # 巡游第 12 步进实验室页，驱动自动跑测试；等中止后截屏，
+          # abort 原因写在结果卡上。rpmfall 要跑满基准 20s + 两档各 15s。
+          for scenario in hotprotect hotrise disconnect; do
+            xcrun simctl terminate "$SIM" com.enginecore.plus 2>/dev/null || true
+            xcrun simctl launch "$SIM" com.enginecore.plus -UITour -UITourStep 12 -UILabTest $scenario
+            sleep 20
+            shot "sim-screenshots/03-labtest-$scenario.png"
+          done
+          xcrun simctl terminate "$SIM" com.enginecore.plus 2>/dev/null || true
+          xcrun simctl launch "$SIM" com.enginecore.plus -UITour -UITourStep 12 -UILabTest rpmfall
+          sleep 75
+          shot "sim-screenshots/03-labtest-rpmfall.png"
           ls -la sim-screenshots/
 
       - name: Upload screenshots
