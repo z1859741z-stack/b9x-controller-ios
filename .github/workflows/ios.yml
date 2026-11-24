@@ -126,7 +126,7 @@ jobs:
             done
           }
           i=0
-          for name in home-smart manual free battery target overclock automation my legal back-home bottom lab-risk lab; do
+          for name in home-smart manual free battery target overclock automation my legal back-home bottom lab-risk lab my-mid; do
             xcrun simctl terminate "$SIM" com.enginecore.plus 2>/dev/null || true
             xcrun simctl launch "$SIM" com.enginecore.plus -UITour -UITourStep $i
             sleep 4

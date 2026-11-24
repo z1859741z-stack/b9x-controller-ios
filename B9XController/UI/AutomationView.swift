@@ -42,6 +42,7 @@ struct AutomationView: View {
             .padding(.top, 16)
         }
         .contentMargins(.bottom, 16, for: .scrollContent)
+        .topScrollEdgeEffect()
         .sheet(item: $editingScene) { scene in
             NavigationStack {
                 SceneEditorView(scene: scene, isNew: !scenes.contains(where: { $0.id == scene.id })) { saved in

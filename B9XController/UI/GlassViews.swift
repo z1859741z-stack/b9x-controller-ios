@@ -46,6 +46,28 @@ enum GlassSupport {
     }
 }
 
+/// 顶部滚动边缘柔化：内容滚到状态栏下方时淡出，不直接压在状态栏文字上。
+/// iOS 26 用系统 scrollEdgeEffectStyle；低版本回退顶部渐变遮罩
+///（部署目标若降到 26 以下时生效；当前部署目标就是 26，回退分支平时走不到）。
+extension View {
+    func topScrollEdgeEffect() -> some View {
+        Group {
+            if #available(iOS 26, *) {
+                self.scrollEdgeEffectStyle(.soft, for: .top)
+            } else {
+                self.overlay(alignment: .top) {
+                    LinearGradient(
+                        colors: [Color(.systemBackground), Color(.systemBackground).opacity(0)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    .frame(height: 56)
+                    .allowsHitTesting(false)
+                }
+            }
+        }
+    }
+}
+
 /// 圆角卡片（对照原版卡片样式），材质跟随外观设置：
 /// 液态玻璃 → iOS 26 .glassEffect(.regular)（放在背景层，不垫任何实色）；
 /// 磨砂模糊 → .ultraThinMaterial；普通 → 纯色 + 透明度滑杆。

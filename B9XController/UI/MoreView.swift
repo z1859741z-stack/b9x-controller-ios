@@ -30,6 +30,7 @@ struct MoreView: View {
                         aboutCard
                         settingsCard
                         deviceCard
+                            .id("tour-mid")
                         dataCard
                         demoCard
                             .id("tour-bottom")
@@ -46,14 +47,16 @@ struct MoreView: View {
                     .padding(.top, 16)
                 }
                 .contentMargins(.bottom, 16, for: .scrollContent)
+                .topScrollEdgeEffect()
                 .navigationTitle("我的")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar(.hidden, for: .navigationBar)
                 // 巡游（CI 截图）：第 8 步进法律页，第 9 步退回，第 10 步滚到底
                 //（验底部留白：最后一张卡距 Tab 栏约 16pt），第 11 步弹实验室
-                // 风险提示，第 12 步进实验室结果表预览。
+                // 风险提示，第 12 步进实验室结果表预览，第 13 步滚到中间
+                //（验顶部滚动边缘柔化：滚到中间时顶部内容应淡出，不压状态栏）。
                 // onAppear 也补一次：固定步数启动时 MoreView 是在 tab 切过来后
-                // 才挂载的，挂载时 step 已是 8/10/11/12，onChange 收不到变化。
+                // 才挂载的，挂载时 step 已是 8/10/11/12/13，onChange 收不到变化。
                 .onChange(of: tour.step) { _, step in
                     guard tour.isTouring else { return }
                     if step == 8 { showLegal = true }
@@ -61,12 +64,14 @@ struct MoreView: View {
                     if step == 10 { scrollToBottom(proxy) }
                     if step == 11 { showLabRisk = true }
                     if step == 12 { showLab = true }
+                    if step == 13 { scrollToMiddle(proxy) }
                 }
                 .onAppear {
                     if tour.isTouring && tour.step == 8 { showLegal = true }
                     if tour.isTouring && tour.step == 10 { scrollToBottom(proxy) }
                     if tour.isTouring && tour.step == 11 { showLabRisk = true }
                     if tour.isTouring && tour.step == 12 { showLab = true }
+                    if tour.isTouring && tour.step == 13 { scrollToMiddle(proxy) }
                 }
             }
         }
@@ -96,6 +101,15 @@ struct MoreView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             withAnimation {
                 proxy.scrollTo("tour-bottom", anchor: .bottom)
+            }
+        }
+    }
+
+    /// 巡游第 13 步：滚到中间一张卡（验顶部滚动边缘柔化）。
+    private func scrollToMiddle(_ proxy: ScrollViewProxy) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            withAnimation {
+                proxy.scrollTo("tour-mid", anchor: .center)
             }
         }
     }

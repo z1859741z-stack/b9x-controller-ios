@@ -517,6 +517,7 @@ struct LabView: View {
             .padding(.top, 16)
         }
         .contentMargins(.bottom, 16, for: .scrollContent)
+        .topScrollEdgeEffect()
         .navigationTitle("实验室")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

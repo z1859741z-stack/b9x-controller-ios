@@ -52,6 +52,7 @@ struct HomeView: View {
                 .padding(.top, 8)
             }
             .contentMargins(.bottom, 16, for: .scrollContent)
+            .topScrollEdgeEffect()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showConnectSheet) {
