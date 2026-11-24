@@ -123,19 +123,16 @@ struct PetView: View {
                     .frame(height: 220)
                 if !player.animationNames.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
-                        GlassEffectContainer(spacing: 4) {
-                            HStack(spacing: 8) {
-                                ForEach(player.animationNames, id: \.self) { name in
-                                    Button(name) {
-                                        player.play(animation: name)
-                                    }
-                                    .font(.subheadline)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .glassBackground((player.currentAnimation == name ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 10))
-                                    .foregroundStyle(player.currentAnimation == name ? .white : .primary)
+                        HStack(spacing: 8) {
+                            ForEach(player.animationNames, id: \.self) { name in
+                                Button(name) {
+                                    player.play(animation: name)
                                 }
+                                .font(.subheadline)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .glassBackground((player.currentAnimation == name ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 10))
+                                .foregroundStyle(player.currentAnimation == name ? .white : .primary)
                             }
                         }
                     }

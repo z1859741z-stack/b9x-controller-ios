@@ -371,20 +371,17 @@ struct MusicView: View {
                 Text("律动样式")
                     .font(.headline)
                     .foregroundStyle(.primary)
-                // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
-                GlassEffectContainer(spacing: 4) {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        ForEach(MusicPattern.allCases) { item in
-                            Button {
-                                pattern = item
-                            } label: {
-                                Text(item.name)
-                                    .font(.subheadline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .glassBackground((pattern == item ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 12))
-                                    .foregroundStyle(pattern == item ? .white : .primary)
-                            }
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(MusicPattern.allCases) { item in
+                        Button {
+                            pattern = item
+                        } label: {
+                            Text(item.name)
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .glassBackground((pattern == item ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 12))
+                                .foregroundStyle(pattern == item ? .white : .primary)
                         }
                     }
                 }

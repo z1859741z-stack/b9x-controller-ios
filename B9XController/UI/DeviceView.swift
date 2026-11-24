@@ -199,31 +199,28 @@ struct ModeGridView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.b9xTextDim)
 
-                // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
-                GlassEffectContainer(spacing: 4) {
-                    LazyVGrid(
-                        columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
-                        spacing: 10
-                    ) {
-                        ForEach(DeviceMode.allCases, id: \.self) { mode in
-                            Button {
-                                selectMode(mode)
-                            } label: {
-                                HStack(spacing: 4) {
-                                    if displayMode == mode {
-                                        Image(systemName: "checkmark")
-                                            .font(.caption.bold())
-                                    }
-                                    Text(mode.name)
-                                        .font(.subheadline)
+                LazyVGrid(
+                    columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
+                    spacing: 10
+                ) {
+                    ForEach(DeviceMode.allCases, id: \.self) { mode in
+                        Button {
+                            selectMode(mode)
+                        } label: {
+                            HStack(spacing: 4) {
+                                if displayMode == mode {
+                                    Image(systemName: "checkmark")
+                                        .font(.caption.bold())
                                 }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .glassBackground((displayMode == mode ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
-                                .foregroundStyle(displayMode == mode ? .white : .primary)
+                                Text(mode.name)
+                                    .font(.subheadline)
                             }
-                            .accessibilityIdentifier("mode.\(mode.rawValue)")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .glassBackground((displayMode == mode ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
+                            .foregroundStyle(displayMode == mode ? .white : .primary)
                         }
+                        .accessibilityIdentifier("mode.\(mode.rawValue)")
                     }
                 }
                 .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.8), value: displayMode)
@@ -284,38 +281,34 @@ struct ModeGridView: View {
     private var modeExclusiveRow: some View {
         switch displayMode {
         case .smart:
-            GlassEffectContainer(spacing: 4) {
-                HStack(spacing: 10) {
-                    presetButton("静音", selected: state.smartPreset == 0) {
-                        markManualOverride()
-                        controller.setSoftwareThermalMode(0)
-                        controller.setSmartPreset(0)
-                    }
-                    presetButton("极寒", selected: state.smartPreset == 2) {
-                        markManualOverride()
-                        controller.setSoftwareThermalMode(0)
-                        controller.setSmartPreset(2)
-                    }
+            HStack(spacing: 10) {
+                presetButton("静音", selected: state.smartPreset == 0) {
+                    markManualOverride()
+                    controller.setSoftwareThermalMode(0)
+                    controller.setSmartPreset(0)
+                }
+                presetButton("极寒", selected: state.smartPreset == 2) {
+                    markManualOverride()
+                    controller.setSoftwareThermalMode(0)
+                    controller.setSmartPreset(2)
                 }
             }
         case .manual:
-            GlassEffectContainer(spacing: 4) {
-                HStack(spacing: 10) {
-                    presetButton("节能", selected: state.manualPreset == 0) {
-                        markManualOverride()
-                        controller.setSoftwareThermalMode(0)
-                        controller.setManualPreset(0)
-                    }
-                    presetButton("强劲", selected: state.manualPreset == 1) {
-                        markManualOverride()
-                        controller.setSoftwareThermalMode(0)
-                        controller.setManualPreset(1)
-                    }
-                    presetButton("极强", selected: state.manualPreset == 2) {
-                        markManualOverride()
-                        controller.setSoftwareThermalMode(0)
-                        controller.setManualPreset(2)
-                    }
+            HStack(spacing: 10) {
+                presetButton("节能", selected: state.manualPreset == 0) {
+                    markManualOverride()
+                    controller.setSoftwareThermalMode(0)
+                    controller.setManualPreset(0)
+                }
+                presetButton("强劲", selected: state.manualPreset == 1) {
+                    markManualOverride()
+                    controller.setSoftwareThermalMode(0)
+                    controller.setManualPreset(1)
+                }
+                presetButton("极强", selected: state.manualPreset == 2) {
+                    markManualOverride()
+                    controller.setSoftwareThermalMode(0)
+                    controller.setManualPreset(2)
                 }
             }
         case .free:
@@ -609,27 +602,24 @@ struct TimerView: View {
                             .foregroundStyle(.primary)
                         Toggle("仅执行一次", isOn: $once)
                             .foregroundStyle(.primary)
-                        // 同组液态玻璃控件放进一个容器：统一取样、相邻玻璃过渡一致（间距 < 控件间隙，不会融成一块）。
-                        GlassEffectContainer(spacing: 4) {
-                            HStack(spacing: 10) {
-                                Button {
-                                    controller.setTimedShutdown(repeat: !once, enabled: true, minutes: Int(minutes))
-                                } label: {
-                                    Text("开始定时")
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
-                                        .foregroundStyle(.white)
-                                }
-                                Button {
-                                    controller.setTimedShutdown(repeat: false, enabled: false, minutes: 0)
-                                } label: {
-                                    Text("取消")
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .glassBackground(in: RoundedRectangle(cornerRadius: 12))
-                                        .foregroundStyle(.primary)
-                                }
+                        HStack(spacing: 10) {
+                            Button {
+                                controller.setTimedShutdown(repeat: !once, enabled: true, minutes: Int(minutes))
+                            } label: {
+                                Text("开始定时")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .glassBackground(Color.b9xAccent, in: RoundedRectangle(cornerRadius: 12))
+                                    .foregroundStyle(.white)
+                            }
+                            Button {
+                                controller.setTimedShutdown(repeat: false, enabled: false, minutes: 0)
+                            } label: {
+                                Text("取消")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .glassBackground(in: RoundedRectangle(cornerRadius: 12))
+                                    .foregroundStyle(.primary)
                             }
                         }
                     }
