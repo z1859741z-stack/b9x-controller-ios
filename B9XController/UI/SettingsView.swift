@@ -76,8 +76,8 @@ struct BackupRestoreView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .safeAreaPadding(.bottom, 80)
         }
+        .contentMargins(.bottom, 16, for: .scrollContent)
         .navigationTitle("备份恢复")
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(
@@ -160,8 +160,8 @@ struct NotificationSettingsView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .safeAreaPadding(.bottom, 80)
         }
+        .contentMargins(.bottom, 16, for: .scrollContent)
         .navigationTitle("通知与实时活动")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -192,8 +192,8 @@ struct SystemInfoView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .safeAreaPadding(.bottom, 80)
         }
+        .contentMargins(.bottom, 16, for: .scrollContent)
         .navigationTitle("系统信息")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -252,8 +252,8 @@ struct LanguageView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .safeAreaPadding(.bottom, 80)
         }
+        .contentMargins(.bottom, 16, for: .scrollContent)
         .navigationTitle("语言")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -329,8 +329,8 @@ struct MediaBackgroundView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .safeAreaPadding(.bottom, 80)
         }
+        .contentMargins(.bottom, 16, for: .scrollContent)
         .navigationTitle("媒体背景")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: pickerItem) { _, newValue in

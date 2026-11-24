@@ -50,9 +50,8 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
-                // 底部留白 80pt：浮动 Tab 栏约 62pt + 底部安全区 34pt，真机实测 24pt 不够、最后一行会被栏压住；留 80pt 让最后一行能完全滑出栏上方。
-                .safeAreaPadding(.bottom, 80)
             }
+            .contentMargins(.bottom, 16, for: .scrollContent)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showConnectSheet) {
@@ -175,7 +174,9 @@ struct HomeView: View {
         GlassCard {
             Button(action: connectTapped) {
                 HStack(spacing: 12) {
-                    Image(systemName: "bluetooth")
+                    // 蓝牙图标用自带符号：SF Symbols 里没有 "bluetooth"，用它会显示空白；
+                    // "antenna.radiowaves.left.and.right" 是现成的无线信号符号。
+                    Image(systemName: "antenna.radiowaves.left.and.right")
                         .font(.title2)
                         .foregroundStyle(Color.b9xAccentLight)
                     VStack(alignment: .leading, spacing: 4) {

@@ -15,8 +15,8 @@ final class TourDriver: ObservableObject {
     static let shared = TourDriver()
 
     /// 总步数：0 智能 / 1 固定 / 2 自由 / 3 电池 / 4 目标 / 5 超频 /
-    /// 6 自动化 tab / 7 我的 tab / 8 关于页法律 / 9 回首页。
-    static let lastStep = 9
+    /// 6 自动化 tab / 7 我的 tab / 8 关于页法律 / 9 回首页 / 10 我的 tab 滚到底。
+    static let lastStep = 10
     static let stepInterval: TimeInterval = 1.6
 
     @Published private(set) var step = 0

@@ -298,6 +298,10 @@ struct ModeGridView: View {
                     Text("极寒").tag(2)
                 }
                 .pickerStyle(.segmented)
+                // 点按测试对照探针：把分段 Picker 的全局 frame 喂给 TapTestDriver。
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame in
+                    TapTestDriver.shared.recordFrame(tab: "picker-档位", frame: frame)
+                }
             }
         case .manual:
             VStack(alignment: .leading, spacing: 6) {
@@ -317,6 +321,10 @@ struct ModeGridView: View {
                     Text("极强").tag(2)
                 }
                 .pickerStyle(.segmented)
+                // 点按测试对照探针：同上（手动档位 Picker）。
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame in
+                    TapTestDriver.shared.recordFrame(tab: "picker-档位", frame: frame)
+                }
             }
         case .free:
             HStack {
@@ -371,8 +379,8 @@ struct ModeGridView: View {
     }
 
     // 档位按钮已改成 modeExclusiveRow 里的分段控件（Picker .segmented），
-    // 旧的 presetButton（玻璃背景按钮）和它带的“极寒”点按对照探针随之退役；
-    // 点按测试里“对照 极寒”会显示“无 frame”，属预期变化。
+    // 旧的 presetButton（玻璃背景按钮）随之退役；点按测试的对照探针改成读
+    // 分段 Picker 的 frame（见上面两个 Picker 的 onGeometryChange）。
 
     /// 点按立即本地乐观更新选中态（弹簧动画）+ 120ms 防抖后异步发帧；
     /// 连续快点只发最后一次；设备回包只校对、不抢 UI。
@@ -710,8 +718,8 @@ struct DeviceFeaturesView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .safeAreaPadding(.bottom, 80)
         }
+        .contentMargins(.bottom, 16, for: .scrollContent)
         .navigationTitle("设备功能")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

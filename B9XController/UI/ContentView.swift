@@ -4,8 +4,9 @@ import SwiftUI
 /// 底栏用系统原生 iOS 26 TabView（Tab API）：系统液态玻璃 Tab 栏，
 /// 比原来的自绘胶囊栏（401×69pt、浅蓝实色选中胶囊）更小、悬浮，
 /// 没有自绘背板也没有不透明选中胶囊；选中着色用原来的选中蓝 #025FD6。
-/// 底部安全区：系统 Tab 栏的自动 inset 在真机上没兜住最后一行，
-/// 各页 ScrollView 用 .safeAreaPadding(.bottom, 80) 留够空间。
+/// 底部安全区：系统 Tab 栏的自动 inset 已兜住最后一行，各页 ScrollView
+/// 只留 .contentMargins(.bottom, 16, for: .scrollContent)，不再另加 80pt
+///（safeAreaPadding 80pt 会和系统 inset 叠在一起，留白过大）。
 struct ContentView: View {
     @EnvironmentObject private var controller: CoolerController
     @Environment(\.colorScheme) private var colorScheme
@@ -127,13 +128,13 @@ struct ContentView: View {
                 }
             }
         }
-        // 巡游（CI 截图）：按步骤切 tab（0–5 首页、6 自动化、7–8 我的、9 回首页）。
+        // 巡游（CI 截图）：按步骤切 tab（0–5 首页、6 自动化、7–8 我的、9 回首页、10 我的滚到底）。
         .onChange(of: tour.step) { _, step in
             guard tour.isTouring else { return }
             withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
                 switch step {
                 case 6: tab = .automation
-                case 7, 8: tab = .my
+                case 7, 8, 10: tab = .my
                 default: tab = .home
                 }
             }
@@ -188,6 +189,36 @@ struct ContentView: View {
     }
 }
 
+/// 图标自检（CI 专用）：全 App 用到的 SF Symbol 名，逐个断言能解析。
+/// SF Symbols 里没有 "bluetooth"，曾导致首页连接卡和宠物面板的图标空白；
+/// 蓝牙处改用自带符号 "antenna.radiowaves.left.and.right"。新增图标时把名字加进这里，
+/// 否则点按测试截图会报 FAIL。没有 XCTest target，本工程不建测试 target，
+/// 自检挂在点按测试 harness 里跑（每次 CI 都跑，截图可见）。
+enum IconAudit {
+    static let allSymbols: [String] = [
+        "antenna.radiowaves.left.and.right",
+        "bolt.circle.fill", "bolt.fill",
+        "checkmark", "checkmark.circle.fill", "checkmark.seal.fill",
+        "chevron.down", "chevron.right",
+        "exclamationmark.triangle.fill", "eye",
+        "gamecontroller.fill",
+        "hexagon", "house",
+        "info.circle.fill",
+        "lightbulb", "lightbulb.fill",
+        "pawprint.fill", "pencil", "person", "photo", "plus", "power",
+        "shield", "snowflake", "snowflake.circle.fill",
+        "square.and.arrow.up", "square.stack.3d.up.fill",
+        "thermometer", "timer", "trash",
+        "waveform", "wrench.and.screwdriver",
+        "xmark.circle.fill", "xmark.octagon.fill",
+    ]
+
+    /// 返回解析不出来的符号名（空数组 = 全部通过）。
+    static func missingSymbols() -> [String] {
+        allSymbols.filter { UIImage(systemName: $0) == nil }
+    }
+}
+
 // MARK: - 点按穿透测试驱动（CI 专用）
 
 /// 点按穿透测试（仅启动参数含 -UITapTest 时激活，真机用户永远进不来）。
@@ -195,14 +226,15 @@ struct ContentView: View {
 /// 1. 在 keyWindow 里找到 UITabBar，报告它的 frame（核对“更小、悬浮”）；
 /// 2. 把栏横向三等分，对每格中心做 window.hitTest，确认落点在 UITabBar
 ///    里面（✓），而不是穿透到下面的内容（✗）；
-/// 3. 对照探针：“极寒”预设按钮（玻璃背板的 SwiftUI Button）的 hitTest 落点。
+/// 3. 对照探针：档位分段 Picker（玻璃背板下的 SwiftUI 控件）的 hitTest 落点。
+/// 4. 图标自检：全 App 的 SF Symbol 逐个断言能解析（IconAudit）。
 /// 不再模拟切 tab（系统 Tab 栏按钮是私有控件，sendActions 不可靠），
 /// 真实点按切换需要真机确认。找不到 UITabBar 时只报告，不崩溃。
 final class TapTestDriver: ObservableObject {
     static let shared = TapTestDriver()
     static var isEnabled: Bool { CommandLine.arguments.contains("-UITapTest") }
 
-    /// 探针 frame（DeviceView 的预设按钮用 onGeometryChange 喂进来）。
+    /// 探针 frame（DeviceView 的档位分段 Picker 用 onGeometryChange 喂进来）。
     @Published var frames: [String: CGRect] = [:]
     /// 当前 tab（ContentView 用 onChange 喂进来）。
     @Published var currentTab: String = "home"
@@ -278,11 +310,18 @@ final class TapTestDriver: ObservableObject {
             marks += isDescendant(hit, of: bar) ? "✓" : "✗(\(hit.map { String(describing: type(of: $0)) } ?? "nil"))"
         }
         lines.append("三格落点: \(marks)")
-        if let pf = frames["preset-极寒"] {
+        // 图标自检：全 App 的 SF Symbol 逐个断言能解析，任何一个空白都直接报 FAIL。
+        let missing = IconAudit.missingSymbols()
+        lines.append(missing.isEmpty
+            ? "图标自检: \(IconAudit.allSymbols.count)/\(IconAudit.allSymbols.count) 通过"
+            : "图标自检 FAIL: \(missing.joined(separator: ", "))")
+        // 对照探针：分段 Picker 的中心点 hitTest（旧的预设按钮已删，探针改成读 Picker，
+        // frame 存在说明控件真的布局在屏上）。
+        if let pf = frames["picker-档位"] {
             let hit = window.hitTest(CGPoint(x: pf.midX, y: pf.midY), with: nil)
-            lines.append("对照 极寒: \(hit.map { String(describing: type(of: $0)) } ?? "nil")")
+            lines.append("对照 档位: \(hit.map { String(describing: type(of: $0)) } ?? "nil")")
         } else {
-            lines.append("对照 极寒: 无 frame")
+            lines.append("对照 档位: 无 frame")
         }
         report = lines.joined(separator: "\n")
     }

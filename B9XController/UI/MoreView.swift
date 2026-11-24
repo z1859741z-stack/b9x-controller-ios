@@ -18,37 +18,42 @@ struct MoreView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    appCard
-                    aboutCard
-                    settingsCard
-                    deviceCard
-                    dataCard
-                    demoCard
-                    // 巡游（CI 截图）专用隐藏入口：第 8 步自动打开法律页。
-                    NavigationLink(destination: LegalDocumentView(readOnly: true), isActive: $showLegal) {
-                        EmptyView()
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 16) {
+                        appCard
+                        aboutCard
+                        settingsCard
+                        deviceCard
+                        dataCard
+                        demoCard
+                            .id("tour-bottom")
+                        // 巡游（CI 截图）专用隐藏入口：第 8 步自动打开法律页。
+                        NavigationLink(destination: LegalDocumentView(readOnly: true), isActive: $showLegal) {
+                            EmptyView()
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                // 底部留白 80pt：浮动 Tab 栏约 62pt + 底部安全区 34pt，真机实测 24pt 不够、最后一行会被栏压住；留 80pt 让最后一行能完全滑出栏上方。
-                .safeAreaPadding(.bottom, 80)
-            }
-            .navigationTitle("我的")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .navigationBar)
-            // 巡游（CI 截图）：第 8 步进法律页，第 9 步退回。
-            // onAppear 也补一次：固定步数启动时 MoreView 是在 tab 切过来后
-            // 才挂载的，挂载时 step 已是 8，onChange 收不到变化。
-            .onChange(of: tour.step) { _, step in
-                guard tour.isTouring else { return }
-                if step == 8 { showLegal = true }
-                if step == 9 { showLegal = false }
-            }
-            .onAppear {
-                if tour.isTouring && tour.step == 8 { showLegal = true }
+                .contentMargins(.bottom, 16, for: .scrollContent)
+                .navigationTitle("我的")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(.hidden, for: .navigationBar)
+                // 巡游（CI 截图）：第 8 步进法律页，第 9 步退回，第 10 步滚到底
+                //（验底部留白：最后一张卡距 Tab 栏约 16pt）。
+                // onAppear 也补一次：固定步数启动时 MoreView 是在 tab 切过来后
+                // 才挂载的，挂载时 step 已是 8/10，onChange 收不到变化。
+                .onChange(of: tour.step) { _, step in
+                    guard tour.isTouring else { return }
+                    if step == 8 { showLegal = true }
+                    if step == 9 { showLegal = false }
+                    if step == 10 { scrollToBottom(proxy) }
+                }
+                .onAppear {
+                    if tour.isTouring && tour.step == 8 { showLegal = true }
+                    if tour.isTouring && tour.step == 10 { scrollToBottom(proxy) }
+                }
             }
         }
         .alert("检查更新", isPresented: $showUpdateAlert) {
@@ -61,6 +66,16 @@ struct MoreView: View {
             Button("好", role: .cancel) { showUpdateAlert = false }
         } message: {
             Text(updateMessage)
+        }
+    }
+
+    /// 巡游第 10 步：滚到最后一张卡底部（验底部留白）。
+    /// onAppear 时布局可能还没稳，晚 0.4 秒再滚；截图在启动 4 秒后才拍，来得及。
+    private func scrollToBottom(_ proxy: ScrollViewProxy) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            withAnimation {
+                proxy.scrollTo("tour-bottom", anchor: .bottom)
+            }
         }
     }
 

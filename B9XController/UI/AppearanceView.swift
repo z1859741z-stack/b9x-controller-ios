@@ -130,8 +130,8 @@ struct AppearanceView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .safeAreaPadding(.bottom, 80)
         }
+        .contentMargins(.bottom, 16, for: .scrollContent)
         .navigationTitle("外观")
         .navigationBarTitleDisplayMode(.inline)
     }

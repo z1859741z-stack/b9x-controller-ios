@@ -371,7 +371,8 @@ struct PetOverlayView: View {
                     controller.scan()
                 }
             } label: {
-                panelLabel(icon: "bluetooth", title: "连接", subtitle: controller.isConnected ? "断开" : "扫描")
+                // 蓝牙图标用自带符号：SF Symbols 里没有 "bluetooth"，用它会显示空白。
+                panelLabel(icon: "antenna.radiowaves.left.and.right", title: "连接", subtitle: controller.isConnected ? "断开" : "扫描")
             }
         default:
             EmptyView()
