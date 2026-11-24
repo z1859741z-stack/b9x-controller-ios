@@ -242,7 +242,9 @@
 				4D9438EA3B40558ABF477C20 /* MusicView.swift in Sources */,
 				3762B39749E0505CA260CD84 /* PetViews.swift in Sources */,
 				45D40E2B3F4D5B4CBBAA4ED9 /* SettingsView.swift in Sources */,
-				DB95E86F996452C09DA5C72B /* TourDriver.swift in Sources */
+				DB95E86F996452C09DA5C72B /* TourDriver.swift in Sources */,
+				923EE71463A4921AC4ADC56A /* LabView.swift in Sources */,
+				E838BBCE9BD3B592BBD97B0C /* LabTestDriver.swift in Sources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -315,7 +317,9 @@
 				80CF8136A4EF53918EB398E2 /* MusicView.swift */,
 				BE7B85DAF0D659EFAA16CA5E /* PetViews.swift */,
 				D023E1C929475F29AA6CC114 /* SettingsView.swift */,
-				F1B22190526F5A5CBB4E9486 /* TourDriver.swift */
+				F1B22190526F5A5CBB4E9486 /* TourDriver.swift */,
+				B59F8BA364C373FA3DCFCB7A /* LabView.swift */,
+				8DE95B6BB0246DD69343BDA0 /* LabTestDriver.swift */
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -778,6 +782,14 @@
 			isa = PBXBuildFile;
 			fileRef = F1B22190526F5A5CBB4E9486 /* TourDriver.swift */;
 		};
+		923EE71463A4921AC4ADC56A /* LabView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = B59F8BA364C373FA3DCFCB7A /* LabView.swift */;
+		};
+		E838BBCE9BD3B592BBD97B0C /* LabTestDriver.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 8DE95B6BB0246DD69343BDA0 /* LabTestDriver.swift */;
+		};
 		E1C4666C11D65611B2055BE1 /* FirmwareView.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 678360371EF852A080715399 /* FirmwareView.swift */;
@@ -824,6 +836,18 @@
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = TourDriver.swift;
+			sourceTree = "<group>";
+		};
+		B59F8BA364C373FA3DCFCB7A /* LabView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = LabView.swift;
+			sourceTree = "<group>";
+		};
+		8DE95B6BB0246DD69343BDA0 /* LabTestDriver.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = LabTestDriver.swift;
 			sourceTree = "<group>";
 		};
 		F1DD99D0035053B8B28CC53F /* LEDView.swift */ = {
