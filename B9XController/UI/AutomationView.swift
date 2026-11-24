@@ -40,8 +40,8 @@ struct AutomationView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            // 系统 TabView 已把 Tab 栏算进安全区，这里只留常规底边距。
-            .padding(.bottom, 24)
+            // 底部留白 80pt：浮动 Tab 栏约 62pt + 底部安全区 34pt，真机实测 24pt 不够、最后一行会被栏压住；留 80pt 让最后一行能完全滑出栏上方。
+            .safeAreaPadding(.bottom, 80)
         }
         .sheet(item: $editingScene) { scene in
             NavigationStack {

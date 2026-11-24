@@ -19,8 +19,14 @@ struct HomeView: View {
                 VStack(spacing: 14) {
                     topRow
                     noticeBanners
-                    heroCard
-                    metricsCard
+                    // 未连接时温度卡和参数卡全是 "--"，没信息量：收成一张连接卡片，
+                    // 连上后再展开两张卡。模式和快捷控制保持原样（仍可进页面）。
+                    if connected {
+                        heroCard
+                        metricsCard
+                    } else {
+                        connectPromptCard
+                    }
 
                     HStack {
                         Text("散热模式")
@@ -44,8 +50,8 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
-                // 系统 TabView 已把 Tab 栏算进安全区，这里只留常规底边距。
-                .padding(.bottom, 24)
+                // 底部留白 80pt：浮动 Tab 栏约 62pt + 底部安全区 34pt，真机实测 24pt 不够、最后一行会被栏压住；留 80pt 让最后一行能完全滑出栏上方。
+                .safeAreaPadding(.bottom, 80)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
@@ -157,6 +163,44 @@ struct HomeView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+    }
+
+    // ------------------------------------------------------------ 未连接提示卡
+    //
+    // 未连接时替代温度卡 + 参数卡：整张卡可点，点按逻辑和顶部“连接”开关一致
+    // （有上次设备就自动连，没有就打开连接页）。
+
+    private var connectPromptCard: some View {
+        GlassCard {
+            Button(action: connectTapped) {
+                HStack(spacing: 12) {
+                    Image(systemName: "bluetooth")
+                        .font(.title2)
+                        .foregroundStyle(Color.b9xAccentLight)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("点此连接 B9X")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text("连接后显示冷板温度、转速和运行参数")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.b9xTextDim)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(Color.b9xTextDim)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func connectTapped() {
+        if controller.demoMode { return }
+        if controller.ble.hasLastDevice() {
+            controller.ble.autoConnectLastDevice()
+        } else {
+            showConnectSheet = true
         }
     }
 

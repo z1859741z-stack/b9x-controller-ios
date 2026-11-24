@@ -4,9 +4,11 @@ import SwiftUI
 /// 底栏用系统原生 iOS 26 TabView（Tab API）：系统液态玻璃 Tab 栏，
 /// 比原来的自绘胶囊栏（401×69pt、浅蓝实色选中胶囊）更小、悬浮，
 /// 没有自绘背板也没有不透明选中胶囊；选中着色用原来的选中蓝 #025FD6。
-/// 系统 Tab 栏自己处理底部安全区，各 tab 的 ScrollView 不再手动留 100pt。
+/// 底部安全区：系统 Tab 栏的自动 inset 在真机上没兜住最后一行，
+/// 各页 ScrollView 用 .safeAreaPadding(.bottom, 80) 留够空间。
 struct ContentView: View {
     @EnvironmentObject private var controller: CoolerController
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var appearance = AppearanceSettings.shared
     @StateObject private var tour = TourDriver.shared
     @StateObject private var tapTest = TapTestDriver.shared
@@ -54,6 +56,11 @@ struct ContentView: View {
                 }
             }
             .tint(Color.tabSelectionBlue)
+            // 选中图标改回空心（对齐原版）：系统默认会给选中 tab 的图标加 .fill，
+            // 这里关掉自动填充，选中和未选中都用描边图标。
+            .environment(\.symbolVariants, .none)
+            // 往下滑时 Tab 栏自动缩成小圆点（iOS 26 原生效果），给长页面腾空间。
+            .tabBarMinimizeBehavior(.onScrollDown)
 
             if showStartup {
                 startupOverlay
@@ -125,6 +132,8 @@ struct ContentView: View {
     }
 
     /// 页面背景：自定义背景图（有遮罩滑杆）或系统背景色。
+    /// 自定义图优先；没图时浅色走很淡的蓝灰竖向渐变（顶部偏蓝灰、底部偏白，
+    /// 对比克制，让玻璃在白底上也有折射感），深色跟随系统走深色。
     @ViewBuilder
     private var backgroundLayer: some View {
         if let image = appearance.backgroundImage {
@@ -133,8 +142,18 @@ struct ContentView: View {
                 .scaledToFill()
                 .ignoresSafeArea()
                 .overlay(Color.black.opacity(appearance.mediaDimming))
-        } else {
+        } else if colorScheme == .dark {
             Color.b9xBackground.ignoresSafeArea()
+        } else {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.93, green: 0.95, blue: 0.98),
+                    Color(red: 0.99, green: 0.99, blue: 1.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
         }
     }
 

@@ -76,7 +76,7 @@ struct BackupRestoreView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("备份恢复")
         .navigationBarTitleDisplayMode(.inline)
@@ -160,7 +160,7 @@ struct NotificationSettingsView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("通知与实时活动")
         .navigationBarTitleDisplayMode(.inline)
@@ -192,7 +192,7 @@ struct SystemInfoView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("系统信息")
         .navigationBarTitleDisplayMode(.inline)
@@ -252,7 +252,7 @@ struct LanguageView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("语言")
         .navigationBarTitleDisplayMode(.inline)
@@ -329,7 +329,7 @@ struct MediaBackgroundView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("媒体背景")
         .navigationBarTitleDisplayMode(.inline)

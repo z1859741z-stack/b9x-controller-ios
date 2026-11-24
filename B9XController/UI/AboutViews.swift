@@ -68,7 +68,7 @@ struct AuthorView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("关于作者")
         .navigationBarTitleDisplayMode(.inline)
@@ -128,7 +128,7 @@ struct LicensesView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("开源与许可")
         .navigationBarTitleDisplayMode(.inline)
@@ -172,7 +172,7 @@ struct LegalDocumentView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle(LegalText.navTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -240,7 +240,7 @@ struct LegalConsentView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
-                .padding(.bottom, 24)
+                .safeAreaPadding(.bottom, 80)
                 .background(Color.b9xBackground)
             }
             .navigationBarTitleDisplayMode(.inline)

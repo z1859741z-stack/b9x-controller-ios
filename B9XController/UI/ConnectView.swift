@@ -75,7 +75,7 @@ struct ConnectView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .alert("暂不支持", isPresented: Binding(
             get: { unsupportedNote != nil },
@@ -406,7 +406,7 @@ struct DeviceTroubleshootingView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("找不到设备")
         .navigationBarTitleDisplayMode(.inline)

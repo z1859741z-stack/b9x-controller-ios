@@ -54,7 +54,7 @@ struct AppearanceView: View {
 
                 GlassCard {
                     VStack(alignment: .leading, spacing: 16) {
-                        Toggle("液态玻璃底栏", isOn: $appearance.glassEnabled)
+                        Toggle("液态玻璃卡片", isOn: $appearance.glassEnabled)
                             .foregroundStyle(.primary)
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -130,7 +130,7 @@ struct AppearanceView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("外观")
         .navigationBarTitleDisplayMode(.inline)

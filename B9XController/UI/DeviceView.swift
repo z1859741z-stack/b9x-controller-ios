@@ -281,35 +281,42 @@ struct ModeGridView: View {
     private var modeExclusiveRow: some View {
         switch displayMode {
         case .smart:
-            HStack(spacing: 10) {
-                presetButton("静音", selected: state.smartPreset == 0) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setSmartPreset(0)
+            // 档位是分段控件，和上面 6 个模式按钮分开，别再长得像 8 选 1。
+            VStack(alignment: .leading, spacing: 6) {
+                Text("档位")
+                    .font(.caption)
+                    .foregroundStyle(Color.b9xTextDim)
+                Picker("智能档位", selection: Binding(
+                    get: { state.smartPreset },
+                    set: { value in
+                        markManualOverride()
+                        controller.setSoftwareThermalMode(0)
+                        controller.setSmartPreset(value)
+                    }
+                )) {
+                    Text("静音").tag(0)
+                    Text("极寒").tag(2)
                 }
-                presetButton("极寒", selected: state.smartPreset == 2) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setSmartPreset(2)
-                }
+                .pickerStyle(.segmented)
             }
         case .manual:
-            HStack(spacing: 10) {
-                presetButton("节能", selected: state.manualPreset == 0) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setManualPreset(0)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("档位")
+                    .font(.caption)
+                    .foregroundStyle(Color.b9xTextDim)
+                Picker("手动档位", selection: Binding(
+                    get: { state.manualPreset },
+                    set: { value in
+                        markManualOverride()
+                        controller.setSoftwareThermalMode(0)
+                        controller.setManualPreset(value)
+                    }
+                )) {
+                    Text("节能").tag(0)
+                    Text("强劲").tag(1)
+                    Text("极强").tag(2)
                 }
-                presetButton("强劲", selected: state.manualPreset == 1) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setManualPreset(1)
-                }
-                presetButton("极强", selected: state.manualPreset == 2) {
-                    markManualOverride()
-                    controller.setSoftwareThermalMode(0)
-                    controller.setManualPreset(2)
-                }
+                .pickerStyle(.segmented)
             }
         case .free:
             HStack {
@@ -363,32 +370,9 @@ struct ModeGridView: View {
         }
     }
 
-    private func presetButton(
-        _ title: String,
-        selected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                if selected {
-                    Image(systemName: "checkmark")
-                        .font(.caption.bold())
-                }
-                Text(title)
-                    .font(.subheadline)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .glassBackground((selected ? Color.b9xAccent : Color.clear), in: RoundedRectangle(cornerRadius: 14))
-            .foregroundStyle(selected ? .white : .primary)
-        }
-        // 对照探针（点按测试用）：记下这个预设按钮的全局 frame。
-        // 它是用户确认能点按的 SwiftUI Button（切预设），拿它当对照，
-        // 看 harness 的 UIKit hitTest 能不能找到 SwiftUI 按钮。
-        .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame in
-            TapTestDriver.shared.recordFrame(tab: "preset-\(title)", frame: frame)
-        }
-    }
+    // 档位按钮已改成 modeExclusiveRow 里的分段控件（Picker .segmented），
+    // 旧的 presetButton（玻璃背景按钮）和它带的“极寒”点按对照探针随之退役；
+    // 点按测试里“对照 极寒”会显示“无 frame”，属预期变化。
 
     /// 点按立即本地乐观更新选中态（弹簧动画）+ 120ms 防抖后异步发帧；
     /// 连续快点只发最后一次；设备回包只校对、不抢 UI。
@@ -726,7 +710,7 @@ struct DeviceFeaturesView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 24)
+            .safeAreaPadding(.bottom, 80)
         }
         .navigationTitle("设备功能")
         .navigationBarTitleDisplayMode(.inline)
