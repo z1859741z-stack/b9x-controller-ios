@@ -408,6 +408,25 @@ final class LabRunner: ObservableObject {
 
     // ------------------------------------------------------------ 结论与导出
 
+    /// CI 巡游预览：给结果表填固定示例数据，只验渲染（仅 -UITour 时调用，
+    /// 真机永远进不来）。示例转速是写死的演示数字，不是固件上报；
+    /// 正式测试的结果一律来自 state.speed（固件上报的真实值）。
+    func previewResults() {
+        guard results.isEmpty else { return }
+        results = [
+            PhaseResult(kind: .baseline, name: "基准 Freeze", windOC: nil, samples: [
+                Sample(speed: 5980, cold: -8.2, hot: 41),
+                Sample(speed: 6010, cold: -8.6, hot: 42),
+            ]),
+            PhaseResult(kind: .ladderA, name: "阶梯 A · windOC 6000", windOC: 6000, samples: [
+                Sample(speed: 5990, cold: -8.4, hot: 42),
+                Sample(speed: 6020, cold: -8.8, hot: 43),
+            ]),
+        ]
+        conclusion = "巡游预览：示例数据，仅验结果表渲染。"
+        phase = .done
+    }
+
     private func buildConclusion(clamped: Bool) {
         guard let baseline = results.first(where: { $0.kind == .baseline }) else {
             conclusion = "没有可用数据。"
@@ -500,6 +519,12 @@ struct LabView: View {
         .contentMargins(.bottom, 16, for: .scrollContent)
         .navigationTitle("实验室")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // CI 巡游第 12 步：只验结果表渲染，用固定示例数据（-UITour 时才进）。
+            if TourDriver.shared.isTouring && TourDriver.shared.step == 12 {
+                runner.previewResults()
+            }
+        }
     }
 
     // ------------------------------------------------------------ 说明卡

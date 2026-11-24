@@ -50,18 +50,23 @@ struct MoreView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar(.hidden, for: .navigationBar)
                 // 巡游（CI 截图）：第 8 步进法律页，第 9 步退回，第 10 步滚到底
-                //（验底部留白：最后一张卡距 Tab 栏约 16pt）。
+                //（验底部留白：最后一张卡距 Tab 栏约 16pt），第 11 步弹实验室
+                // 风险提示，第 12 步进实验室结果表预览。
                 // onAppear 也补一次：固定步数启动时 MoreView 是在 tab 切过来后
-                // 才挂载的，挂载时 step 已是 8/10，onChange 收不到变化。
+                // 才挂载的，挂载时 step 已是 8/10/11/12，onChange 收不到变化。
                 .onChange(of: tour.step) { _, step in
                     guard tour.isTouring else { return }
                     if step == 8 { showLegal = true }
                     if step == 9 { showLegal = false }
                     if step == 10 { scrollToBottom(proxy) }
+                    if step == 11 { showLabRisk = true }
+                    if step == 12 { showLab = true }
                 }
                 .onAppear {
                     if tour.isTouring && tour.step == 8 { showLegal = true }
                     if tour.isTouring && tour.step == 10 { scrollToBottom(proxy) }
+                    if tour.isTouring && tour.step == 11 { showLabRisk = true }
+                    if tour.isTouring && tour.step == 12 { showLab = true }
                 }
             }
         }

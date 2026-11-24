@@ -128,13 +128,13 @@ struct ContentView: View {
                 }
             }
         }
-        // 巡游（CI 截图）：按步骤切 tab（0–5 首页、6 自动化、7–8 我的、9 回首页、10 我的滚到底）。
+        // 巡游（CI 截图）：按步骤切 tab（0–5 首页、6 自动化、7–8 我的、9 回首页、10 我的滚到底、11–12 实验室）。
         .onChange(of: tour.step) { _, step in
             guard tour.isTouring else { return }
             withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
                 switch step {
                 case 6: tab = .automation
-                case 7, 8, 10: tab = .my
+                case 7, 8, 10, 11, 12: tab = .my
                 default: tab = .home
                 }
             }
