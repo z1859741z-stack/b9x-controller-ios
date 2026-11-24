@@ -186,7 +186,8 @@ final class LabRunner: ObservableObject {
             controller.setFreezeEnabled(false)
             let ok = await waitFor({ !self.controller.state.freezeMode },
                                    timeout: Self.freezeConfirmTimeout)
-            if !ok { abortReason = "退出超频未确认"; return }
+            // 采样器红线已中止时任务会被取消：真正的中止原因已由采样器记下，别覆盖。
+            if !ok { if Task.isCancelled { return }; abortReason = "退出超频未确认"; return }
         }
         // 2. 开 1 秒采样器（每秒发一次 0x13 轮询 + 记一笔 + 查红线）。
         startSampler()
@@ -196,12 +197,14 @@ final class LabRunner: ObservableObject {
         controller.setFreezeEnabled(true)
         guard await waitFor({ self.controller.state.freezeMode },
                             timeout: Self.freezeConfirmTimeout) else {
+            if Task.isCancelled { return }
             abortReason = "进入超频未确认"; return
         }
         await sampleFor(seconds: Self.baselineSeconds)
         controller.setFreezeEnabled(false)
         guard await waitFor({ !self.controller.state.freezeMode },
                             timeout: Self.freezeConfirmTimeout) else {
+            if Task.isCancelled { return }
             abortReason = "退出超频未确认"; return
         }
         endPhase()
@@ -243,12 +246,14 @@ final class LabRunner: ObservableObject {
             controller.setFreezeEnabled(true)
             guard await waitFor({ self.controller.state.freezeMode },
                                 timeout: Self.freezeConfirmTimeout) else {
+                if Task.isCancelled { return }
                 abortReason = "进入超频未确认"; return
             }
             await sampleFor(seconds: Self.rungSeconds)
             controller.setFreezeEnabled(false)
             guard await waitFor({ !self.controller.state.freezeMode },
                                 timeout: Self.freezeConfirmTimeout) else {
+                if Task.isCancelled { return }
                 abortReason = "退出超频未确认"; return
             }
             endPhase()
