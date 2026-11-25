@@ -24,7 +24,7 @@ jobs:
 
       - name: Stamp build number and commit
         run: |
-          # 构建号 = workflow run number（只在构建时改，不提交回仓库）；
+          # 构建号 = 227 + workflow run number（接上旧版 0.8.143 (227)，只增不减；只在构建时改，不提交回仓库）；
           # 短 commit 写进 Info.plist（GIT_COMMIT），系统信息页显示。
           /usr/libexec/PlistBuddy -c "Add :GIT_COMMIT string ${GITHUB_SHA:0:7}" B9XController/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :GIT_COMMIT ${GITHUB_SHA:0:7}" B9XController/Info.plist
           /usr/libexec/PlistBuddy -c "Print :GIT_COMMIT" B9XController/Info.plist
@@ -35,7 +35,7 @@ jobs:
             -scheme B9XController \
             -sdk iphoneos \
             -configuration Release \
-            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CURRENT_PROJECT_VERSION=$((227 + ${{ github.run_number }})) \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -51,6 +51,28 @@ jobs:
           cp -r "$APP" Payload/
           zip -r B9XController-unsigned.ipa Payload
 
+      - name: Check release IPA has no CI tour code
+        run: |
+          # Release 包里不许出现巡游/CI 测试代码（都在 #if DEBUG 里）。
+          APPDIR=$(ls -d Payload/*.app | head -1)
+          EXE=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$APPDIR/Info.plist")
+          BIN="$APPDIR/$EXE"
+          echo "binary: $BIN"
+          test -f "$BIN"
+          found=0
+          for pat in "巡游" "-UITour" "-UITapTest" "-UILabTest"; do
+            if LC_ALL=C grep -a -q -F -- "$pat" "$BIN"; then
+              echo "FAIL: found '$pat' in release binary"; found=1
+            else
+              echo "ok: '$pat' not in release binary"
+            fi
+          done
+          test $found -eq 0
+          BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APPDIR/Info.plist")
+          echo "CFBundleVersion = $BUILD"
+          test "$BUILD" -ge 228
+          shasum -a 256 B9XController-unsigned.ipa
+
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
@@ -65,6 +87,14 @@ jobs:
           cp B9XController-unsigned.ipa "B9XController-$SHORT-unsigned.ipa"
           gh release view latest-build >/dev/null 2>&1 || gh release create latest-build --title "Latest build" --notes "CI 自动构建的未签名 IPA" --prerelease
           gh release upload latest-build B9XController-unsigned.ipa "B9XController-$SHORT-unsigned.ipa" --clobber
+          # 只留最新一个带 commit 的 IPA 和固定名 B9XController-unsigned.ipa，旧的删掉。
+          gh release view latest-build --json assets -q '.assets[].name' | while read -r name; do
+            if [ "$name" != "B9XController-unsigned.ipa" ] && [ "$name" != "B9XController-$SHORT-unsigned.ipa" ]; then
+              echo "delete old asset: $name"
+              gh release delete-asset latest-build "$name" -y
+            fi
+          done
+          gh release view latest-build --json assets -q '.assets[].name'
 
   # 模拟器截图巡游：iPhone 16 Pro Max（iOS 26），每步单独启动一次
   #（-UITourStep N），simctl 每步截屏上传。固定步数不依赖计时，
@@ -100,7 +130,7 @@ jobs:
 
       - name: Stamp build number and commit
         run: |
-          # 和 build job 同一套戳：构建号 = run number，短 commit 写进 Info.plist。
+          # 和 build job 同一套戳：构建号 = 227 + run number，短 commit 写进 Info.plist。
           /usr/libexec/PlistBuddy -c "Add :GIT_COMMIT string ${GITHUB_SHA:0:7}" B9XController/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :GIT_COMMIT ${GITHUB_SHA:0:7}" B9XController/Info.plist
           /usr/libexec/PlistBuddy -c "Print :GIT_COMMIT" B9XController/Info.plist
 
@@ -111,7 +141,7 @@ jobs:
             -scheme B9XController \
             -sdk iphonesimulator \
             -configuration Debug \
-            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CURRENT_PROJECT_VERSION=$((227 + ${{ github.run_number }})) \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
