@@ -12,10 +12,14 @@ final class LabTestDriver: ObservableObject {
     static var isEnabled: Bool { scenario != nil }
 
     static var scenario: String? {
+        #if !DEBUG
+        return nil
+        #else
         let args = CommandLine.arguments
         guard let i = args.firstIndex(of: "-UILabTest"), i + 1 < args.count else { return nil }
         let s = args[i + 1]
         return ["hotprotect", "hotrise", "rpmfall", "disconnect"].contains(s) ? s : nil
+        #endif
     }
 
     private var timer: Timer?

@@ -22,16 +22,26 @@ final class TourDriver: ObservableObject {
 
     @Published private(set) var step = 0
 
-    var isTouring: Bool { CommandLine.arguments.contains("-UITour") }
+    var isTouring: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-UITour")
+        #else
+        false   // Release 包里巡游代码整段编译掉，真机永远进不来。
+        #endif
+    }
 
     /// 固定步数：-UITourStep N（CI 每步单独启动一次）。
     var fixedStep: Int? {
+        #if !DEBUG
+        return nil
+        #else
         let args = CommandLine.arguments
         guard let i = args.firstIndex(of: "-UITourStep"),
               i + 1 < args.count,
               let n = Int(args[i + 1]),
               (0...Self.lastStep).contains(n) else { return nil }
         return n
+        #endif
     }
 
     private var started = false

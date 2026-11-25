@@ -418,6 +418,7 @@ final class LabRunner: ObservableObject {
     /// 真机永远进不来）。示例转速是写死的演示数字，不是固件上报；
     /// 正式测试的结果一律来自 state.speed（固件上报的真实值）。
     func previewResults() {
+        #if DEBUG
         guard results.isEmpty else { return }
         results = [
             PhaseResult(kind: .baseline, name: "基准 Freeze", windOC: nil, samples: [
@@ -431,6 +432,7 @@ final class LabRunner: ObservableObject {
         ]
         conclusion = "巡游预览：示例数据，仅验结果表渲染。"
         phase = .done
+        #endif
     }
 
     private func buildConclusion(clamped: Bool) {

@@ -391,7 +391,11 @@ final class CoolerController: ObservableObject {
     /// 往 demo 状态写假数据，验证 LabRunner 的四种中止逻辑。
     /// 正常启动（无该参数）直接 return，绝不影响真机。
     func labTestInject(speed: Int? = nil, hot: Int? = nil, hotProtection: Bool? = nil) {
+        #if DEBUG
         guard CommandLine.arguments.contains("-UILabTest"), demoMode else { return }
+        #else
+        return
+        #endif
         if let speed { state.speed = speed }
         if let hot { state.hotSurfaceTemperature = hot }
         if let hotProtection { state.hotProtectionEnabled = hotProtection }

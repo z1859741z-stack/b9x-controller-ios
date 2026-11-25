@@ -83,6 +83,7 @@ struct ContentView: View {
 
             // 巡游角标（仅 CI 截图时显示）：截图上直接看到当前步数，
             // 步数不动就说明巡游没在跑。
+            #if DEBUG
             if tour.isTouring {
                 VStack {
                     Text("巡游 \(tour.step)/\(TourDriver.lastStep)")
@@ -95,6 +96,7 @@ struct ContentView: View {
                 }
                 .allowsHitTesting(false)
             }
+            #endif
 
             // 点按测试报告（仅 -UITapTest 启动时显示）：hitTest verdicts 写在屏上，
             // 截图就能看到。平时不显示，真机用户进不来；不拦点按。
@@ -232,7 +234,13 @@ enum IconAudit {
 /// 真实点按切换需要真机确认。找不到 UITabBar 时只报告，不崩溃。
 final class TapTestDriver: ObservableObject {
     static let shared = TapTestDriver()
-    static var isEnabled: Bool { CommandLine.arguments.contains("-UITapTest") }
+    static var isEnabled: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-UITapTest")
+        #else
+        false
+        #endif
+    }
 
     /// 探针 frame（DeviceView 的档位分段 Picker 用 onGeometryChange 喂进来）。
     @Published var frames: [String: CGRect] = [:]
